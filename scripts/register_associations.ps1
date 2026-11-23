@@ -1,9 +1,10 @@
 ﻿# ModernView Shell & Association Registration Script
-# Run this script to register ModernView in Windows Explorer right-click context menu,
+# Registers ModernView in Windows Explorer right-click context menu ("Open with ModernView"),
 # "Open with" submenu, and Windows Settings > Apps > Default Apps.
 
 param(
-    [string]$TargetExe = ""
+    [string]$TargetExe = "",
+    [switch]$OpenDefaultApps = $false
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
@@ -29,17 +30,25 @@ if (-not $TargetExe) {
 }
 
 if (-not $TargetExe -or -not (Test-Path $TargetExe)) {
-    Write-Error "Could not locate modernview.exe. Build with 'cargo build --release' or specify -TargetExe 'C:\path\to\modernview.exe'."
+    Write-Error "Could not locate modernview.exe. Please build with 'cargo build --release' or specify -TargetExe 'C:\path\to\modernview.exe'."
     exit 1
 }
 
 $escapedExe = $TargetExe.Replace("\", "\\")
 Write-Host "Registering ModernView executable: $TargetExe" -ForegroundColor Yellow
 
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if ($isAdmin) {
+    Write-Host "[i] Running with Administrator privileges — registering for all users (HKLM) and current user (HKCU)." -ForegroundColor Green
+} else {
+    Write-Host "[i] Running as Current User — registering in HKCU (no admin required)." -ForegroundColor Gray
+}
+
+# 1. Generate Registry File for HKCU
 $regContent = @"
 Windows Registry Editor Version 5.00
 
-; ModernView Application Handler
+; ModernView Application Handler (for Open With submenu)
 [HKEY_CURRENT_USER\Software\Classes\Applications\modernview.exe]
 @="ModernView"
 "FriendlyAppName"="ModernView"
@@ -115,7 +124,7 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Classes\.ico\OpenWithProgids]
 "ModernView.Image"=""
 
-; Windows Default Apps Integration
+; Windows Default Apps Integration (HKCU)
 [HKEY_CURRENT_USER\Software\RegisteredApplications]
 "ModernView"="Software\\ModernView\\Capabilities"
 
@@ -135,13 +144,83 @@ Windows Registry Editor Version 5.00
 ".ico"="ModernView.Image"
 "@
 
+# If Admin, also register in HKLM for all users on the device
+if ($isAdmin) {
+    $regContent += @"
+
+; Machine-wide Registration (HKLM)
+[HKEY_LOCAL_MACHINE\Software\Classes\Applications\modernview.exe]
+@="ModernView"
+"FriendlyAppName"="ModernView"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\Applications\modernview.exe\DefaultIcon]
+@="\"$escapedExe\",0"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\Applications\modernview.exe\shell\open]
+@="Open with ModernView"
+"FriendlyAppName"="ModernView"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\Applications\modernview.exe\shell\open\command]
+@="\"$escapedExe\" \"%1\""
+
+[HKEY_LOCAL_MACHINE\Software\Classes\Applications\modernview.exe\SupportedTypes]
+".jpg"=""
+".jpeg"=""
+".png"=""
+".webp"=""
+".bmp"=""
+".gif"=""
+".tiff"=""
+".tif"=""
+".ico"=""
+
+[HKEY_LOCAL_MACHINE\Software\Classes\ModernView.Image]
+@="ModernView Image Document"
+"FriendlyTypeName"="ModernView Image"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\ModernView.Image\DefaultIcon]
+@="\"$escapedExe\",0"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\ModernView.Image\shell\open]
+@="Open with ModernView"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\ModernView.Image\shell\open\command]
+@="\"$escapedExe\" \"%1\""
+
+[HKEY_LOCAL_MACHINE\Software\Classes\SystemFileAssociations\image\shell\ModernView]
+@="Open with ModernView"
+"Icon"="\"$escapedExe\",0"
+
+[HKEY_LOCAL_MACHINE\Software\Classes\SystemFileAssociations\image\shell\ModernView\command]
+@="\"$escapedExe\" \"%1\""
+
+[HKEY_LOCAL_MACHINE\Software\RegisteredApplications]
+"ModernView"="Software\\ModernView\\Capabilities"
+
+[HKEY_LOCAL_MACHINE\Software\ModernView\Capabilities]
+"ApplicationName"="ModernView"
+"ApplicationDescription"="Fast, Modern Image Viewer & Editor for Windows"
+
+[HKEY_LOCAL_MACHINE\Software\ModernView\Capabilities\FileAssociations]
+".jpg"="ModernView.Image"
+".jpeg"="ModernView.Image"
+".png"="ModernView.Image"
+".webp"="ModernView.Image"
+".bmp"="ModernView.Image"
+".gif"="ModernView.Image"
+".tiff"="ModernView.Image"
+".tif"="ModernView.Image"
+".ico"="ModernView.Image"
+"@
+}
+
 $tempRegPath = Join-Path $env:TEMP "modernview_register.reg"
 [System.IO.File]::WriteAllText($tempRegPath, $regContent, [System.Text.Encoding]::Unicode)
 
 Write-Host "Importing registry keys..." -ForegroundColor Yellow
 $proc = Start-Process -FilePath "reg.exe" -ArgumentList "import `"$tempRegPath`"" -Wait -PassThru -NoNewWindow
 if ($proc.ExitCode -eq 0) {
-    Write-Host "[✓] Registry keys imported successfully into HKCU." -ForegroundColor Green
+    Write-Host "[✓] Registry keys imported successfully." -ForegroundColor Green
 } else {
     Write-Error "Failed to import registry keys (exit code $($proc.ExitCode))."
     exit 1
@@ -164,7 +243,7 @@ public class ShellNotifier {
 }
 '@
 try {
-    Add-Type -TypeDefinition $notifyCode -Language CSharp
+    Add-Type -TypeDefinition $notifyCode -Language CSharp -ErrorAction SilentlyContinue
     [ShellNotifier]::Notify()
     Write-Host "[✓] Windows Explorer notified." -ForegroundColor Green
 } catch {
@@ -178,3 +257,8 @@ Write-Host "  1. Right-click any image -> 'Open with ModernView' is available" -
 Write-Host "  2. Right-click -> 'Open with' submenu lists ModernView" -ForegroundColor Cyan
 Write-Host "  3. Windows Settings > Apps > Default Apps lists ModernView" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Green
+
+if ($OpenDefaultApps) {
+    Write-Host "Opening Windows Default Apps settings..." -ForegroundColor Yellow
+    Start-Process "ms-settings:defaultapps"
+}

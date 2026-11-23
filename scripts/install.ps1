@@ -1,6 +1,7 @@
 ﻿# ModernView Windows Installer Script
 param(
-    [switch]$SkipAssociations = $false
+    [switch]$SkipAssociations = $false,
+    [switch]$OpenDefaultApps = $false
 )
 
 Write-Host "==========================================================" -ForegroundColor Cyan
@@ -16,7 +17,26 @@ if (-not (Test-Path $sourceExe)) {
 }
 
 if (-not (Test-Path $sourceExe)) {
-    Write-Error "Could not find modernview.exe. Please build with 'cargo build --release' first."
+    $rootRelease = Join-Path $PSScriptRoot "..\target\debug\modernview.exe"
+    if (Test-Path $rootRelease) {
+        $sourceExe = $rootRelease
+    }
+}
+
+if (-not (Test-Path $sourceExe)) {
+    Write-Host "[i] Executable not found. Checking if cargo is installed..." -ForegroundColor Yellow
+    $cargoCmd = Get-Command "cargo" -ErrorAction SilentlyContinue
+    if ($cargoCmd) {
+        Write-Host "Building modernview in release mode..." -ForegroundColor Cyan
+        Push-Location (Join-Path $PSScriptRoot "..")
+        cargo build --release
+        Pop-Location
+        $sourceExe = Join-Path $PSScriptRoot "..\target\release\modernview.exe"
+    }
+}
+
+if (-not (Test-Path $sourceExe)) {
+    Write-Error "Could not find or build modernview.exe. Please build with 'cargo build --release' first."
     exit 1
 }
 
@@ -50,10 +70,13 @@ if (-not $SkipAssociations) {
     Write-Host "Registering Windows context menu and file associations..." -ForegroundColor Yellow
     $assocScript = Join-Path $PSScriptRoot "register_associations.ps1"
     if (Test-Path $assocScript) {
-        & $assocScript -TargetExe "$installDir\modernview.exe"
+        & $assocScript -TargetExe "$installDir\modernview.exe" -OpenDefaultApps:$OpenDefaultApps
     }
 }
 
 Write-Host ""
+Write-Host "==========================================================" -ForegroundColor Green
 Write-Host "Installation completed successfully!" -ForegroundColor Green
 Write-Host "Launch ModernView from the Desktop or Start Menu." -ForegroundColor Cyan
+Write-Host "Right-click any image in Windows Explorer to see 'Open with ModernView'!" -ForegroundColor Yellow
+Write-Host "==========================================================" -ForegroundColor Green

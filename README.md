@@ -117,19 +117,26 @@ The resulting binary will be created at `target\release\modernview.exe`.
 
 ## Windows Integration & Default App Setup
 
-ModernView can be integrated directly into Windows Explorer without administrative permissions:
+ModernView can be integrated directly into Windows Explorer on any Windows machine:
 
-1. **Via ModernView Settings**:
+1. **One-Click Setup**:
+   Simply run `setup.bat` (or `setup.ps1` in PowerShell) from the repository root:
+   ```cmd
+   setup.bat
+   ```
+   This automatically installs ModernView to `%LOCALAPPDATA%\Programs\ModernView`, creates Desktop and Start Menu shortcuts, registers the Explorer context menu, and enables Windows Default App compatibility.
+
+2. **Via ModernView Settings**:
    Open ModernView, go to Settings (`Ctrl + ,`), open the **About** tab, and click **Register 'Open With' & Default App Handler**.
 
-2. **Via PowerShell Script**:
+3. **Via Standalone Registration Script**:
    ```powershell
    powershell -ExecutionPolicy Bypass -File scripts\register_associations.ps1
    ```
 
-3. **Setting ModernView as Default**:
-   - Open Windows **Settings** > **Apps** > **Default apps**.
-   - Select **ModernView** to associate it with photo and image formats.
+4. **Setting ModernView as Default**:
+   - Open Windows **Settings** (`Win + I`) > **Apps** > **Default apps**.
+   - Select **ModernView** to associate it with all image formats (.jpg, .png, .webp, .bmp, .gif, .tiff, .ico).
 
 ---
 
