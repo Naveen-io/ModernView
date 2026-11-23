@@ -1,0 +1,230 @@
+import { Theme } from "theme.slint";
+import { ActionButton, IconButton } from "components.slint";
+import { IconFolderOpen, IconClose } from "icons.slint";
+
+export struct RecentItem {
+    path: string,
+    filename: string,
+}
+
+export component LeftSidebar inherits Rectangle {
+    in property <bool> is_open: true;
+    in property <[RecentItem]> recent_items: [];
+    in property <string> current_folder: "";
+
+    callback open_file();
+    callback open_folder();
+    callback select_recent(string);
+    callback select_favorite(string);
+    callback close_sidebar();
+
+    width: root.is_open ? 260px : 0px;
+    clip: true;
+    background: Theme.surface;
+    if (root.is_open) : Rectangle { x: parent.width - 1px; width: 1px; height: 100%; background: Theme.border; }
+
+    animate width { duration: 150ms; easing: ease-out; }
+
+    VerticalLayout {
+        width: 260px;
+        padding: 12px;
+        spacing: 14px;
+
+        // Header
+        HorizontalLayout {
+            alignment: space-between;
+
+            Text {
+                text: "Navigation";
+                color: Theme.text_primary;
+                font-size: 13px;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+
+            IconButton {
+                button_size: 24px;
+                tooltip: "Close Sidebar";
+                clicked => { root.close_sidebar(); }
+                IconClose {
+                    icon_color: Theme.text_secondary;
+                    width: 14px;
+                    height: 14px;
+                }
+            }
+        }
+
+        // Action Buttons
+        VerticalLayout {
+            spacing: 6px;
+
+            ActionButton {
+                text: "Open File...";
+                primary: true;
+                min_btn_width: 236px;
+                clicked => { root.open_file(); }
+            }
+
+            ActionButton {
+                text: "Open Folder...";
+                min_btn_width: 236px;
+                clicked => { root.open_folder(); }
+            }
+        }
+
+        // Quick Locations Section
+        VerticalLayout {
+            spacing: 6px;
+
+            Text {
+                text: "FAVORITES";
+                color: Theme.text_muted;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }
+
+            Rectangle {
+                height: 28px;
+                border-radius: Theme.radius_sm;
+                background: fav_pictures_touch.has-hover ? (Theme.dark_mode ? #252830 : #EDEDF2) : #00000000;
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    spacing: 8px;
+                    alignment: start;
+
+                    Text {
+                        text: "📁 Pictures";
+                        color: Theme.text_secondary;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                    }
+                }
+
+                fav_pictures_touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.select_favorite("pictures"); }
+                }
+            }
+
+            Rectangle {
+                height: 28px;
+                border-radius: Theme.radius_sm;
+                background: fav_downloads_touch.has-hover ? (Theme.dark_mode ? #252830 : #EDEDF2) : #00000000;
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    spacing: 8px;
+                    alignment: start;
+
+                    Text {
+                        text: "📁 Downloads";
+                        color: Theme.text_secondary;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                    }
+                }
+
+                fav_downloads_touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.select_favorite("downloads"); }
+                }
+            }
+
+            Rectangle {
+                height: 28px;
+                border-radius: Theme.radius_sm;
+                background: fav_desktop_touch.has-hover ? (Theme.dark_mode ? #252830 : #EDEDF2) : #00000000;
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    spacing: 8px;
+                    alignment: start;
+
+                    Text {
+                        text: "📁 Desktop";
+                        color: Theme.text_secondary;
+                        font-size: 12px;
+                        vertical-alignment: center;
+                    }
+                }
+
+                fav_desktop_touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.select_favorite("desktop"); }
+                }
+            }
+        }
+
+        // Current Folder display
+        if (root.current_folder != "") : VerticalLayout {
+            spacing: 4px;
+
+            Text {
+                text: "CURRENT FOLDER";
+                color: Theme.text_muted;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }
+
+            Text {
+                text: root.current_folder;
+                color: Theme.text_secondary;
+                font-size: 11px;
+                overflow: elide;
+            }
+        }
+
+        // Recent Files Section
+        VerticalLayout {
+            spacing: 6px;
+
+            Text {
+                text: "RECENT IMAGES";
+                color: Theme.text_muted;
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+            }
+
+            if (root.recent_items.length == 0) : Text {
+                text: "No recent images opened";
+                color: Theme.text_muted;
+                font-size: 11px;
+                font-italic: true;
+            }
+
+            for item in root.recent_items : Rectangle {
+                height: 28px;
+                border-radius: Theme.radius_sm;
+                background: item_touch.has-hover ? (Theme.dark_mode ? #252830 : #EDEDF2) : #00000000;
+
+                HorizontalLayout {
+                    padding-left: 8px;
+                    padding-right: 8px;
+                    spacing: 8px;
+                    alignment: space-between;
+
+                    Text {
+                        text: item.filename;
+                        color: Theme.text_primary;
+                        font-size: 12px;
+                        overflow: elide;
+                        max-width: 220px;
+                        vertical-alignment: center;
+                    }
+                }
+
+                item_touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.select_recent(item.path); }
+                }
+            }
+        }
+
+        // Spacer to push bottom content
+        Rectangle {}
+    }
+}

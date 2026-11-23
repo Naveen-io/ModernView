@@ -1,0 +1,411 @@
+import { Theme } from "theme.slint";
+import { ActionButton, IconButton, SliderRow } from "components.slint";
+import { IconClose } from "icons.slint";
+
+export component SettingsDialog inherits Rectangle {
+    in property <bool> is_open: false;
+    in-out property <int> active_tab: 0; // 0: Appearance, 1: Viewer, 2: Performance, 3: File Handling, 4: Shortcuts
+
+    // Appearance
+    in-out property <bool> opt_dark_mode: true;
+
+    // Viewer
+    in-out property <int> opt_default_zoom: 0; // 0: Fit, 1: 100%
+    in-out property <bool> opt_filmstrip_visible: true;
+    in-out property <bool> opt_inspector_visible: false;
+
+    // Performance
+    in-out property <float> opt_cache_limit_mb: 256.0;
+
+    // File Handling
+    in-out property <int> opt_default_format: 0; // 0: PNG, 1: JPEG, 2: WebP
+    in-out property <float> opt_default_quality: 85.0;
+    in-out property <bool> opt_confirm_overwrite: true;
+
+    callback close_dialog();
+    callback save_settings();
+    callback register_associations();
+
+    if (root.is_open) : Rectangle {
+        width: 100%;
+        height: 100%;
+        background: #00000088;
+        z: 100;
+
+        // Modal Card
+        Rectangle {
+            width: 580px;
+            height: 520px;
+            border-radius: Theme.radius_lg;
+            background: Theme.surface;
+            border-width: 1px;
+            border-color: Theme.border;
+            drop-shadow-blur: 24px;
+            drop-shadow-color: #00000060;
+
+            VerticalLayout {
+                padding: 20px;
+                spacing: 16px;
+
+                // Header
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: "Preferences & Settings";
+                        color: Theme.text_primary;
+                        font-size: 16px;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                    }
+
+                    IconButton {
+                        button_size: 26px;
+                        tooltip: "Close";
+                        clicked => { root.close_dialog(); }
+                        IconClose {
+                            icon_color: Theme.text_secondary;
+                            width: 14px; height: 14px;
+                        }
+                    }
+                }
+
+                // Tabs Navigation
+                Rectangle {
+                    height: 32px;
+                    border-radius: Theme.radius_md;
+                    background: Theme.dark_mode ? #16171B : #EDEDF2;
+                    border-width: 1px;
+                    border-color: Theme.border;
+
+                    HorizontalLayout {
+                        padding: 2px;
+                        spacing: 2px;
+
+                        ActionButton {
+                            text: "Appearance"; min_btn_width: 90px;
+                            primary: root.active_tab == 0;
+                            clicked => { root.active_tab = 0; }
+                        }
+                        ActionButton {
+                            text: "Viewer"; min_btn_width: 80px;
+                            primary: root.active_tab == 1;
+                            clicked => { root.active_tab = 1; }
+                        }
+                        ActionButton {
+                            text: "Performance"; min_btn_width: 100px;
+                            primary: root.active_tab == 2;
+                            clicked => { root.active_tab = 2; }
+                        }
+                        ActionButton {
+                            text: "Files"; min_btn_width: 70px;
+                            primary: root.active_tab == 3;
+                            clicked => { root.active_tab = 3; }
+                        }
+                        ActionButton {
+                            text: "Shortcuts"; min_btn_width: 80px;
+                            primary: root.active_tab == 4;
+                            clicked => { root.active_tab = 4; }
+                        }
+                        ActionButton {
+                            text: "About"; min_btn_width: 65px;
+                            primary: root.active_tab == 5;
+                            clicked => { root.active_tab = 5; }
+                        }
+                    }
+                }
+
+                // Tab Content Body
+                Flickable {
+                    // TAB 0: APPEARANCE
+                    if (root.active_tab == 0) : VerticalLayout {
+                        spacing: 14px;
+
+                        Text {
+                            text: "THEME SELECTION";
+                            color: Theme.text_muted;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            ActionButton {
+                                text: "Dark Mode (#151619)";
+                                min_btn_width: 240px;
+                                primary: root.opt_dark_mode;
+                                clicked => {
+                                    root.opt_dark_mode = true;
+                                    Theme.dark_mode = true;
+                                }
+                            }
+
+                            ActionButton {
+                                text: "Light Mode (#F7F7F8)";
+                                min_btn_width: 240px;
+                                primary: !root.opt_dark_mode;
+                                clicked => {
+                                    root.opt_dark_mode = false;
+                                    Theme.dark_mode = false;
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "ModernView's design adheres strictly to Apple-inspired minimalism for Windows: clean solid surfaces, restrained charcoal palettes, precision typography, and no AI-slop or liquid-glass artifacts.";
+                            color: Theme.text_secondary;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                        }
+                    }
+
+                    // TAB 1: VIEWER
+                    if (root.active_tab == 1) : VerticalLayout {
+                        spacing: 14px;
+
+                        Text {
+                            text: "DEFAULT ZOOM BEHAVIOR";
+                            color: Theme.text_muted;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            ActionButton {
+                                text: "Fit to Window (Default)";
+                                min_btn_width: 240px;
+                                primary: root.opt_default_zoom == 0;
+                                clicked => { root.opt_default_zoom = 0; }
+                            }
+
+                            ActionButton {
+                                text: "Actual Size (100% Pixels)";
+                                min_btn_width: 240px;
+                                primary: root.opt_default_zoom == 1;
+                                clicked => { root.opt_default_zoom = 1; }
+                            }
+                        }
+
+                        Text {
+                            text: "PANELS VISIBILITY";
+                            color: Theme.text_muted;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            ActionButton {
+                                text: root.opt_filmstrip_visible ? "Filmstrip: Visible" : "Filmstrip: Hidden";
+                                min_btn_width: 240px;
+                                primary: root.opt_filmstrip_visible;
+                                clicked => { root.opt_filmstrip_visible = !root.opt_filmstrip_visible; }
+                            }
+
+                            ActionButton {
+                                text: root.opt_inspector_visible ? "Inspector: Visible" : "Inspector: Hidden";
+                                min_btn_width: 240px;
+                                primary: root.opt_inspector_visible;
+                                clicked => { root.opt_inspector_visible = !root.opt_inspector_visible; }
+                            }
+                        }
+                    }
+
+                    // TAB 2: PERFORMANCE
+                    if (root.active_tab == 2) : VerticalLayout {
+                        spacing: 14px;
+
+                        Text {
+                            text: "MEMORY & CACHE LIMITS";
+                            color: Theme.text_muted;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+
+                        SliderRow {
+                            label: "Max Memory Thumbnail Cache";
+                            value: root.opt_cache_limit_mb;
+                            min_val: 64.0;
+                            max_val: 1024.0;
+                            default_val: 256.0;
+                            suffix: " MB";
+                            value_changed(v) => { root.opt_cache_limit_mb = v; }
+                            reset_clicked => { root.opt_cache_limit_mb = 256.0; }
+                        }
+
+                        Text {
+                            text: "Thumbnails and full-resolution decodes are loaded on high-priority background worker threads to keep the UI at a continuous 60fps with zero frame drops during browsing.";
+                            color: Theme.text_secondary;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                        }
+                    }
+
+                    // TAB 3: FILE HANDLING
+                    if (root.active_tab == 3) : VerticalLayout {
+                        spacing: 14px;
+
+                        Text {
+                            text: "DEFAULT EXPORT FORMAT";
+                            color: Theme.text_muted;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 8px;
+
+                            ActionButton {
+                                text: "PNG (Lossless)";
+                                min_btn_width: 150px;
+                                primary: root.opt_default_format == 0;
+                                clicked => { root.opt_default_format = 0; }
+                            }
+                            ActionButton {
+                                text: "JPEG (High Quality)";
+                                min_btn_width: 160px;
+                                primary: root.opt_default_format == 1;
+                                clicked => { root.opt_default_format = 1; }
+                            }
+                            ActionButton {
+                                text: "WebP (Modern)";
+                                min_btn_width: 150px;
+                                primary: root.opt_default_format == 2;
+                                clicked => { root.opt_default_format = 2; }
+                            }
+                        }
+
+                        SliderRow {
+                            label: "Default JPEG Quality";
+                            value: root.opt_default_quality;
+                            min_val: 10.0;
+                            max_val: 100.0;
+                            default_val: 85.0;
+                            suffix: "%";
+                            value_changed(v) => { root.opt_default_quality = v; }
+                            reset_clicked => { root.opt_default_quality = 85.0; }
+                        }
+
+                        ActionButton {
+                            text: root.opt_confirm_overwrite ? "✓ Prompt Confirmation Before Overwrite" : "✗ Overwrite Without Prompt";
+                            min_btn_width: 320px;
+                            primary: root.opt_confirm_overwrite;
+                            clicked => { root.opt_confirm_overwrite = !root.opt_confirm_overwrite; }
+                        }
+                    }
+
+                    // TAB 4: KEYBOARD SHORTCUTS REFERENCE
+                    if (root.active_tab == 4) : VerticalLayout {
+                        spacing: 8px;
+
+                        Text {
+                            text: "KEYBOARD SHORTCUTS REFERENCE";
+                            color: Theme.text_muted;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+
+                        HorizontalLayout { alignment: space-between; Text { text: "Open Image"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Ctrl + O"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Open Folder"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Ctrl + Shift + O"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Save / Overwrite"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Ctrl + S"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Save As / Export"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Ctrl + Shift + S"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Undo Edit"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Ctrl + Z"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Redo Edit"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Ctrl + Y"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Next Image"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Right Arrow / Space"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Previous Image"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Left Arrow / Backspace"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Zoom In"; color: Theme.text_secondary; font-size: 12px; } Text { text: "+ / Mouse Wheel Up"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Zoom Out"; color: Theme.text_secondary; font-size: 12px; } Text { text: "- / Mouse Wheel Down"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Fit to Window"; color: Theme.text_secondary; font-size: 12px; } Text { text: "0 / Double Click"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Actual Size (100%)"; color: Theme.text_secondary; font-size: 12px; } Text { text: "1"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Edit Mode"; color: Theme.text_secondary; font-size: 12px; } Text { text: "E"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Toggle Inspector"; color: Theme.text_secondary; font-size: 12px; } Text { text: "I"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Toggle Fullscreen"; color: Theme.text_secondary; font-size: 12px; } Text { text: "F / F11"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                        HorizontalLayout { alignment: space-between; Text { text: "Close Tool / Dialog"; color: Theme.text_secondary; font-size: 12px; } Text { text: "Esc"; color: Theme.text_primary; font-weight: 600; font-size: 12px; } }
+                    }
+
+                    // TAB 5: ABOUT & WINDOWS INTEGRATION
+                    if (root.active_tab == 5) : VerticalLayout {
+                        spacing: 12px;
+
+                        Text {
+                            text: "MODERNVIEW";
+                            color: Theme.accent;
+                            font-size: 15px;
+                            font-weight: 700;
+                        }
+
+                        Text {
+                            text: "Fast images. Simple editing. Beautiful experience. Nothing unnecessary.";
+                            color: Theme.text_primary;
+                            font-size: 12px;
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: "ModernView is a modern, high-performance desktop image viewer and editor for Windows. Built natively with Rust and Slint for instantaneous cold startup, SIMD-accelerated resizing, multi-threaded decode pipelines, and non-destructive image workflows.";
+                            color: Theme.text_secondary;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                        }
+
+                        Rectangle { height: 1px; background: Theme.border; }
+
+                        Text {
+                            text: "WINDOWS SHELL & DEFAULT APP INTEGRATION";
+                            color: Theme.text_muted;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+
+                        Text {
+                            text: "Click below to register ModernView into Explorer's context menu ('Open with ModernView'), the 'Open with' submenu, and Windows Settings > Default Apps for all supported image formats (JPG, PNG, WEBP, GIF, BMP, TIFF, ICO).";
+                            color: Theme.text_secondary;
+                            font-size: 11px;
+                            wrap: word-wrap;
+                        }
+
+                        ActionButton {
+                            text: "Register 'Open With' & Default App Handler";
+                            min_btn_width: 320px;
+                            primary: true;
+                            clicked => { root.register_associations(); }
+                        }
+
+                        Rectangle { height: 1px; background: Theme.border; }
+
+                        HorizontalLayout {
+                            alignment: space-between;
+                            Text { text: "Repository"; color: Theme.text_secondary; font-size: 11px; }
+                            Text { text: "https://github.com/Naveen-io/ModernView"; color: Theme.accent; font-size: 11px; }
+                        }
+                        HorizontalLayout {
+                            alignment: space-between;
+                            Text { text: "License"; color: Theme.text_secondary; font-size: 11px; }
+                            Text { text: "MIT OR Apache-2.0"; color: Theme.text_primary; font-size: 11px; }
+                        }
+                    }
+                }
+
+                // Footer Actions
+                HorizontalLayout {
+                    alignment: end;
+                    spacing: 8px;
+
+                    ActionButton {
+                        text: "Done";
+                        primary: true;
+                        min_btn_width: 100px;
+                        clicked => {
+                            root.save_settings();
+                            root.close_dialog();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

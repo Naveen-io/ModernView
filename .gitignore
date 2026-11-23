@@ -1,0 +1,22 @@
+# Build artifacts
+/target
+**/*.rs.bk
+*.pdb
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary and local files
+*.tmp
+*.log
+.env
+.env.*

@@ -1,0 +1,48 @@
+export global Theme {
+    in-out property <bool> dark_mode: true;
+    in-out property <color> accent: #4D83F6;
+    in-out property <color> accent_hover: #6094FF;
+    in-out property <color> accent_active: #3C6FD9;
+
+    // Dark theme colors
+    out property <color> bg_dark: #151619;
+    out property <color> surface_dark: #1C1D21;
+    out property <color> surface_elevated_dark: #24262B;
+    out property <color> border_dark: #303238;
+    out property <color> border_subtle_dark: #26282E;
+    out property <color> text_primary_dark: #F5F5F5;
+    out property <color> text_secondary_dark: #A2A4AA;
+    out property <color> text_muted_dark: #6C6E76;
+
+    // Light theme colors
+    out property <color> bg_light: #F7F7F8;
+    out property <color> surface_light: #FFFFFF;
+    out property <color> surface_elevated_light: #FFFFFF;
+    out property <color> border_light: #E7E7EA;
+    out property <color> border_subtle_light: #EEEEF2;
+    out property <color> text_primary_light: #202126;
+    out property <color> text_secondary_light: #777982;
+    out property <color> text_muted_light: #A0A2AA;
+
+    // Dynamic getters
+    out property <color> bg: dark_mode ? bg_dark : bg_light;
+    out property <color> surface: dark_mode ? surface_dark : surface_light;
+    out property <color> surface_elevated: dark_mode ? surface_elevated_dark : surface_elevated_light;
+    out property <color> border: dark_mode ? border_dark : border_light;
+    out property <color> border_subtle: dark_mode ? border_subtle_dark : border_subtle_light;
+    out property <color> text_primary: dark_mode ? text_primary_dark : text_primary_light;
+    out property <color> text_secondary: dark_mode ? text_secondary_dark : text_secondary_light;
+    out property <color> text_muted: dark_mode ? text_muted_dark : text_muted_light;
+
+    // Semantic colors
+    out property <color> danger: #EF4444;
+    out property <color> danger_hover: #F87171;
+    out property <color> success: #10B981;
+    out property <color> warning: #F59E0B;
+
+    // Geometry tokens
+    out property <length> radius_sm: 4px;
+    out property <length> radius_md: 6px;
+    out property <length> radius_lg: 10px;
+    out property <length> radius_full: 999px;
+}

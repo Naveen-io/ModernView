@@ -1,0 +1,152 @@
+import { Theme } from "theme.slint";
+import { IconButton } from "components.slint";
+import { IconChevronLeft, IconChevronRight, IconClose } from "icons.slint";
+
+export struct FilmstripItem {
+    index: int,
+    filename: string,
+    path: string,
+    thumbnail: image,
+    is_selected: bool,
+}
+
+export component BottomFilmstrip inherits Rectangle {
+    in property <bool> is_open: true;
+    in property <[FilmstripItem]> items: [];
+    in property <int> current_index: 0;
+    in property <int> total_count: 0;
+
+    callback select_index(int);
+    callback prev_image();
+    callback next_image();
+    callback close_filmstrip();
+
+    height: root.is_open ? 104px : 0px;
+    clip: true;
+    background: Theme.surface;
+    if (root.is_open) : Rectangle { y: 0px; height: 1px; width: 100%; background: Theme.border; }
+
+    animate height { duration: 150ms; easing: ease-out; }
+
+    VerticalLayout {
+        height: 104px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 6px;
+
+        // Header bar with status and controls
+        HorizontalLayout {
+            alignment: space-between;
+
+            HorizontalLayout {
+                spacing: 8px;
+
+                Text {
+                    text: (root.total_count > 0) ?
+                        ("Folder Images: " + (root.current_index + 1) + " of " + root.total_count) :
+                        "No folder loaded";
+                    color: Theme.text_secondary;
+                    font-size: 11px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+
+            HorizontalLayout {
+                spacing: 4px;
+
+                IconButton {
+                    button_size: 20px;
+                    tooltip: "Previous";
+                    clicked => { root.prev_image(); }
+                    IconChevronLeft {
+                        icon_color: Theme.text_secondary;
+                        width: 12px;
+                        height: 12px;
+                    }
+                }
+
+                IconButton {
+                    button_size: 20px;
+                    tooltip: "Next";
+                    clicked => { root.next_image(); }
+                    IconChevronRight {
+                        icon_color: Theme.text_secondary;
+                        width: 12px;
+                        height: 12px;
+                    }
+                }
+
+                IconButton {
+                    button_size: 20px;
+                    tooltip: "Hide Filmstrip";
+                    clicked => { root.close_filmstrip(); }
+                    IconClose {
+                        icon_color: Theme.text_secondary;
+                        width: 12px;
+                        height: 12px;
+                    }
+                }
+            }
+        }
+
+        // Horizontal thumbnail scroll view
+        Flickable {
+            height: 64px;
+            content-height: 64px;
+
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+
+                for item in root.items : Rectangle {
+                    width: 76px;
+                    height: 64px;
+                    border-radius: Theme.radius_sm;
+                    background: item.is_selected ? (Theme.dark_mode ? #2D3342 : #DCE5F8) : (
+                        thumb_touch.has-hover ? (Theme.dark_mode ? #252830 : #EDEDF2) : (Theme.dark_mode ? #1A1B20 : #F3F3F6)
+                    );
+                    border-width: item.is_selected ? 2px : 1px;
+                    border-color: item.is_selected ? Theme.accent : Theme.border_subtle;
+
+                    thumb_touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => { root.select_index(item.index); }
+                    }
+
+                    VerticalLayout {
+                        padding: 2px;
+                        spacing: 2px;
+                        alignment: center;
+
+                        Rectangle {
+                            width: 70px;
+                            height: 44px;
+                            clip: true;
+                            border-radius: 2px;
+                            background: #00000020;
+
+                            Image {
+                                width: 100%;
+                                height: 100%;
+                                source: item.thumbnail;
+                                image-fit: contain;
+                            }
+                        }
+
+                        Text {
+                            text: item.filename;
+                            color: item.is_selected ? Theme.text_primary : Theme.text_secondary;
+                            font-size: 9px;
+                            overflow: elide;
+                            horizontal-alignment: center;
+                            max-width: 72px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

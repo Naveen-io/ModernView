@@ -1,0 +1,277 @@
+import { Theme } from "theme.slint";
+import { IconButton, SegmentButton, Badge } from "components.slint";
+import {
+    IconChevronLeft, IconChevronRight, IconZoomIn, IconZoomOut,
+    IconFit, IconActualSize, IconInfo, IconSettings, IconFolderOpen,
+    IconBatch, IconCompare, IconSliders, IconViewer
+} from "icons.slint";
+
+export component TopToolbar inherits Rectangle {
+    in property <string> filename: "No image open";
+    in property <string> dimensions_str: "";
+    in property <string> filesize_str: "";
+    in property <float> zoom_level: 1.0;
+    in property <int> active_mode: 0; // 0: Viewer, 1: Edit, 2: Batch, 3: Compare
+    in property <bool> sidebar_open: false;
+    in property <bool> filmstrip_open: true;
+    in property <bool> inspector_open: false;
+    in property <bool> can_prev: false;
+    in property <bool> can_next: false;
+
+    callback prev_image();
+    callback next_image();
+    callback zoom_in();
+    callback zoom_out();
+    callback fit_window();
+    callback actual_size();
+    callback mode_changed(int);
+    callback toggle_sidebar();
+    callback toggle_filmstrip();
+    callback toggle_inspector();
+    callback open_settings();
+    callback open_file();
+
+    height: 48px;
+    background: Theme.surface;
+
+    Rectangle {
+        y: parent.height - 1px;
+        height: 1px;
+        width: 100%;
+        background: Theme.border;
+    }
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 12px;
+        alignment: space-between;
+
+        // Left Section: App Logo + File Name + Badges
+        HorizontalLayout {
+            spacing: 10px;
+            alignment: start;
+
+            // Open Folder/File quick button
+            IconButton {
+                tooltip: "Open Image or Folder (Ctrl+O)";
+                clicked => { root.open_file(); }
+                IconFolderOpen {
+                    icon_color: Theme.text_primary;
+                }
+            }
+
+            // App Name & File title
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+
+                Text {
+                    text: "ModernView";
+                    color: Theme.accent;
+                    font-size: 13px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+
+                Text {
+                    text: "•";
+                    color: Theme.border;
+                    font-size: 13px;
+                    vertical-alignment: center;
+                }
+
+                Text {
+                    text: root.filename;
+                    color: Theme.text_primary;
+                    font-size: 13px;
+                    font-weight: 500;
+                    overflow: elide;
+                    max-width: 260px;
+                    vertical-alignment: center;
+                }
+
+                if (root.dimensions_str != "") : Badge {
+                    text: root.dimensions_str;
+                    y: 14px;
+                }
+
+                if (root.filesize_str != "") : Badge {
+                    text: root.filesize_str;
+                    y: 14px;
+                }
+            }
+        }
+
+        // Center Section: Navigation & Zoom Controls
+        HorizontalLayout {
+            spacing: 4px;
+            alignment: center;
+
+            IconButton {
+                disabled: !root.can_prev;
+                tooltip: "Previous Image (Left Arrow)";
+                clicked => { root.prev_image(); }
+                IconChevronLeft {
+                    icon_color: root.can_prev ? Theme.text_primary : Theme.text_muted;
+                }
+            }
+
+            IconButton {
+                disabled: !root.can_next;
+                tooltip: "Next Image (Right Arrow)";
+                clicked => { root.next_image(); }
+                IconChevronRight {
+                    icon_color: root.can_next ? Theme.text_primary : Theme.text_muted;
+                }
+            }
+
+            // Divider
+            Rectangle {
+                width: 1px;
+                height: 20px;
+                background: Theme.border;
+                y: 14px;
+            }
+
+            IconButton {
+                tooltip: "Zoom Out (-)";
+                clicked => { root.zoom_out(); }
+                IconZoomOut {
+                    icon_color: Theme.text_primary;
+                }
+            }
+
+            // Zoom percent display
+            Rectangle {
+                width: 52px;
+                height: 28px;
+                border-radius: Theme.radius_sm;
+                background: Theme.surface_elevated;
+                border-width: 1px;
+                border-color: Theme.border_subtle;
+
+                Text {
+                    text: Math.round(root.zoom_level * 100) + "%";
+                    color: Theme.text_primary;
+                    font-size: 11px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+
+            IconButton {
+                tooltip: "Zoom In (+)";
+                clicked => { root.zoom_in(); }
+                IconZoomIn {
+                    icon_color: Theme.text_primary;
+                }
+            }
+
+            IconButton {
+                tooltip: "Fit to Window (0)";
+                clicked => { root.fit_window(); }
+                IconFit {
+                    icon_color: Theme.text_primary;
+                }
+            }
+
+            IconButton {
+                tooltip: "Actual Size 100% (1)";
+                clicked => { root.actual_size(); }
+                IconActualSize {
+                    icon_color: Theme.text_primary;
+                }
+            }
+        }
+
+        // Right Section: Mode Switcher + Panels Toggle + Settings
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: end;
+
+            // Apple-style segmented mode switch
+            Rectangle {
+                height: 32px;
+                border-radius: Theme.radius_md;
+                background: Theme.dark_mode ? #16171B : #EDEDF2;
+                border-width: 1px;
+                border-color: Theme.border;
+
+                HorizontalLayout {
+                    padding: 2px;
+                    spacing: 2px;
+
+                    SegmentButton {
+                        text: "Viewer";
+                        selected: root.active_mode == 0;
+                        clicked => { root.mode_changed(0); }
+                    }
+                    SegmentButton {
+                        text: "Edit";
+                        selected: root.active_mode == 1;
+                        clicked => { root.mode_changed(1); }
+                    }
+                    SegmentButton {
+                        text: "Batch";
+                        selected: root.active_mode == 2;
+                        clicked => { root.mode_changed(2); }
+                    }
+                    SegmentButton {
+                        text: "Compare";
+                        selected: root.active_mode == 3;
+                        clicked => { root.mode_changed(3); }
+                    }
+                }
+            }
+
+            // Divider
+            Rectangle {
+                width: 1px;
+                height: 20px;
+                background: Theme.border;
+                y: 14px;
+            }
+
+            // Sidebar toggle
+            IconButton {
+                active: root.sidebar_open;
+                tooltip: "Toggle Navigation Panel";
+                clicked => { root.toggle_sidebar(); }
+                IconFolderOpen {
+                    icon_color: root.sidebar_open ? Theme.accent : Theme.text_secondary;
+                }
+            }
+
+            // Filmstrip toggle
+            IconButton {
+                active: root.filmstrip_open;
+                tooltip: "Toggle Filmstrip";
+                clicked => { root.toggle_filmstrip(); }
+                IconBatch {
+                    icon_color: root.filmstrip_open ? Theme.accent : Theme.text_secondary;
+                }
+            }
+
+            // Inspector toggle
+            IconButton {
+                active: root.inspector_open;
+                tooltip: "Toggle Inspector (I)";
+                clicked => { root.toggle_inspector(); }
+                IconInfo {
+                    icon_color: root.inspector_open ? Theme.accent : Theme.text_secondary;
+                }
+            }
+
+            // Settings button
+            IconButton {
+                tooltip: "Settings";
+                clicked => { root.open_settings(); }
+                IconSettings {
+                    icon_color: Theme.text_secondary;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,419 @@
+import { Theme } from "theme.slint";
+import { ActionButton, IconButton, SliderRow } from "components.slint";
+import {
+    IconRotateLeft, IconRotateRight, IconFlipH, IconFlipV,
+    IconCrop, IconUndo, IconRedo, IconSave, IconClose, IconRefresh
+} from "icons.slint";
+
+export component EditorPanel inherits Rectangle {
+    // Current adjustments state
+    in property <float> brightness: 0.0;
+    in property <float> contrast: 0.0;
+    in property <float> saturation: 0.0;
+
+    // Undo / Redo availability
+    in property <bool> can_undo: false;
+    in property <bool> can_redo: false;
+    in property <bool> has_unsaved_changes: false;
+
+    // Crop state
+    in property <bool> is_cropping: false;
+    in property <int> crop_aspect_preset: 0; // 0: Free, 1: 1:1, 2: 4:3, 3: 16:9, 4: 3:2
+
+    // Resize state
+    in-out property <string> resize_w: "1920";
+    in-out property <string> resize_h: "1080";
+    in-out property <bool> lock_aspect: true;
+    in property <int> resample_filter: 0; // 0: Lanczos3, 1: Bilinear, 2: Nearest
+
+    // Callbacks
+    callback rotate_90_ccw();
+    callback rotate_90_cw();
+    callback rotate_180();
+    callback flip_horizontal();
+    callback flip_vertical();
+
+    callback toggle_crop();
+    callback set_crop_aspect(int);
+    callback apply_crop();
+    callback cancel_crop();
+
+    callback apply_resize(int, int, int);
+    callback set_resize_scale(float);
+
+    callback brightness_changed(float);
+    callback contrast_changed(float);
+    callback saturation_changed(float);
+    callback reset_adjustments();
+
+    callback undo();
+    callback redo();
+    callback revert_original();
+    callback save_overwrite();
+    callback save_as();
+
+    width: 300px;
+    background: Theme.surface;
+    Rectangle { x: 0px; width: 1px; height: 100%; background: Theme.border; }
+
+    Flickable {
+        width: 300px;
+
+        VerticalLayout {
+            padding: 14px;
+            spacing: 16px;
+
+            // Header & History
+            HorizontalLayout {
+                alignment: space-between;
+
+                Text {
+                    text: "Image Editor";
+                    color: Theme.text_primary;
+                    font-size: 13px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+
+                HorizontalLayout {
+                    spacing: 4px;
+
+                    IconButton {
+                        button_size: 26px;
+                        disabled: !root.can_undo;
+                        tooltip: "Undo (Ctrl+Z)";
+                        clicked => { root.undo(); }
+                        IconUndo {
+                            icon_color: root.can_undo ? Theme.text_primary : Theme.text_muted;
+                            width: 14px; height: 14px;
+                        }
+                    }
+
+                    IconButton {
+                        button_size: 26px;
+                        disabled: !root.can_redo;
+                        tooltip: "Redo (Ctrl+Y)";
+                        clicked => { root.redo(); }
+                        IconRedo {
+                            icon_color: root.can_redo ? Theme.text_primary : Theme.text_muted;
+                            width: 14px; height: 14px;
+                        }
+                    }
+                }
+            }
+
+            // Quick Actions: Save / Export
+            VerticalLayout {
+                spacing: 6px;
+
+                HorizontalLayout {
+                    spacing: 8px;
+
+                    ActionButton {
+                        text: "Save";
+                        primary: root.has_unsaved_changes;
+                        min_btn_width: 130px;
+                        clicked => { root.save_overwrite(); }
+                    }
+
+                    ActionButton {
+                        text: "Save As...";
+                        min_btn_width: 130px;
+                        clicked => { root.save_as(); }
+                    }
+                }
+
+                if (root.has_unsaved_changes) : ActionButton {
+                    text: "Revert to Original";
+                    danger: true;
+                    min_btn_width: 272px;
+                    clicked => { root.revert_original(); }
+                }
+            }
+
+            // Transform Section (Rotate & Flip)
+            VerticalLayout {
+                spacing: 8px;
+
+                Text {
+                    text: "TRANSFORM";
+                    color: Theme.text_muted;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+
+                HorizontalLayout {
+                    spacing: 6px;
+
+                    IconButton {
+                        tooltip: "Rotate 90° Left";
+                        clicked => { root.rotate_90_ccw(); }
+                        IconRotateLeft {
+                            icon_color: Theme.text_primary;
+                            width: 16px; height: 16px;
+                        }
+                    }
+
+                    IconButton {
+                        tooltip: "Rotate 90° Right";
+                        clicked => { root.rotate_90_cw(); }
+                        IconRotateRight {
+                            icon_color: Theme.text_primary;
+                            width: 16px; height: 16px;
+                        }
+                    }
+
+                    IconButton {
+                        tooltip: "Rotate 180°";
+                        clicked => { root.rotate_180(); }
+                        IconRefresh {
+                            icon_color: Theme.text_primary;
+                            width: 16px; height: 16px;
+                        }
+                    }
+
+                    IconButton {
+                        tooltip: "Flip Horizontal";
+                        clicked => { root.flip_horizontal(); }
+                        IconFlipH {
+                            icon_color: Theme.text_primary;
+                            width: 16px; height: 16px;
+                        }
+                    }
+
+                    IconButton {
+                        tooltip: "Flip Vertical";
+                        clicked => { root.flip_vertical(); }
+                        IconFlipV {
+                            icon_color: Theme.text_primary;
+                            width: 16px; height: 16px;
+                        }
+                    }
+                }
+            }
+
+            // Crop Section
+            VerticalLayout {
+                spacing: 8px;
+
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: "CROP";
+                        color: Theme.text_muted;
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 0.5px;
+                        vertical-alignment: center;
+                    }
+
+                    ActionButton {
+                        text: root.is_cropping ? "Stop Crop" : "Start Crop";
+                        primary: !root.is_cropping;
+                        min_btn_width: 90px;
+                        clicked => { root.toggle_crop(); }
+                    }
+                }
+
+                if (root.is_cropping) : VerticalLayout {
+                    spacing: 8px;
+
+                    Text {
+                        text: "Aspect Ratio Presets:";
+                        color: Theme.text_secondary;
+                        font-size: 11px;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 4px;
+
+                        ActionButton {
+                            text: "Free";
+                            min_btn_width: 50px;
+                            primary: root.crop_aspect_preset == 0;
+                            clicked => { root.set_crop_aspect(0); }
+                        }
+                        ActionButton {
+                            text: "1:1";
+                            min_btn_width: 50px;
+                            primary: root.crop_aspect_preset == 1;
+                            clicked => { root.set_crop_aspect(1); }
+                        }
+                        ActionButton {
+                            text: "4:3";
+                            min_btn_width: 50px;
+                            primary: root.crop_aspect_preset == 2;
+                            clicked => { root.set_crop_aspect(2); }
+                        }
+                        ActionButton {
+                            text: "16:9";
+                            min_btn_width: 50px;
+                            primary: root.crop_aspect_preset == 3;
+                            clicked => { root.set_crop_aspect(3); }
+                        }
+                        ActionButton {
+                            text: "3:2";
+                            min_btn_width: 50px;
+                            primary: root.crop_aspect_preset == 4;
+                            clicked => { root.set_crop_aspect(4); }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        ActionButton {
+                            text: "Apply Crop";
+                            primary: true;
+                            min_btn_width: 130px;
+                            clicked => { root.apply_crop(); }
+                        }
+
+                        ActionButton {
+                            text: "Cancel";
+                            min_btn_width: 130px;
+                            clicked => { root.cancel_crop(); }
+                        }
+                    }
+                }
+            }
+
+            // Resize Section
+            VerticalLayout {
+                spacing: 8px;
+
+                Text {
+                    text: "RESIZE";
+                    color: Theme.text_muted;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text { text: "Width (px)"; color: Theme.text_secondary; font-size: 11px; }
+                        TextInput {
+                            text <=> root.resize_w;
+                            color: Theme.text_primary;
+                            font-size: 12px;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: 2px;
+                        Text { text: "Height (px)"; color: Theme.text_secondary; font-size: 11px; }
+                        TextInput {
+                            text <=> root.resize_h;
+                            color: Theme.text_primary;
+                            font-size: 12px;
+                        }
+                    }
+                }
+
+                // Quick scale buttons
+                HorizontalLayout {
+                    spacing: 4px;
+
+                    ActionButton {
+                        text: "50%";
+                        min_btn_width: 48px;
+                        clicked => { root.set_resize_scale(0.5); }
+                    }
+                    ActionButton {
+                        text: "75%";
+                        min_btn_width: 48px;
+                        clicked => { root.set_resize_scale(0.75); }
+                    }
+                    ActionButton {
+                        text: "150%";
+                        min_btn_width: 48px;
+                        clicked => { root.set_resize_scale(1.5); }
+                    }
+                    ActionButton {
+                        text: "200%";
+                        min_btn_width: 48px;
+                        clicked => { root.set_resize_scale(2.0); }
+                    }
+                    ActionButton {
+                        text: "1080p";
+                        min_btn_width: 56px;
+                        clicked => {
+                            root.resize_w = "1920";
+                            root.resize_h = "1080";
+                        }
+                    }
+                }
+
+                ActionButton {
+                    text: "Apply Resize (Lanczos3)";
+                    primary: true;
+                    min_btn_width: 272px;
+                    clicked => {
+                        // Pass width and height to callback
+                        root.apply_resize(root.resize_w.to-float(), root.resize_h.to-float(), root.resample_filter);
+                    }
+                }
+            }
+
+            // Adjustments Section
+            VerticalLayout {
+                spacing: 12px;
+
+                HorizontalLayout {
+                    alignment: space-between;
+
+                    Text {
+                        text: "ADJUSTMENTS";
+                        color: Theme.text_muted;
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 0.5px;
+                        vertical-alignment: center;
+                    }
+
+                    ActionButton {
+                        text: "Reset All";
+                        min_btn_width: 70px;
+                        clicked => { root.reset_adjustments(); }
+                    }
+                }
+
+                SliderRow {
+                    label: "Brightness";
+                    value: root.brightness;
+                    min_val: -100.0;
+                    max_val: 100.0;
+                    default_val: 0.0;
+                    value_changed(v) => { root.brightness_changed(v); }
+                    reset_clicked => { root.brightness_changed(0.0); }
+                }
+
+                SliderRow {
+                    label: "Contrast";
+                    value: root.contrast;
+                    min_val: -100.0;
+                    max_val: 100.0;
+                    default_val: 0.0;
+                    value_changed(v) => { root.contrast_changed(v); }
+                    reset_clicked => { root.contrast_changed(0.0); }
+                }
+
+                SliderRow {
+                    label: "Saturation";
+                    value: root.saturation;
+                    min_val: -100.0;
+                    max_val: 100.0;
+                    default_val: 0.0;
+                    value_changed(v) => { root.saturation_changed(v); }
+                    reset_clicked => { root.saturation_changed(0.0); }
+                }
+            }
+        }
+    }
+}

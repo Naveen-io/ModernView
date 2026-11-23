@@ -1,0 +1,15 @@
+import { Theme } from "theme.slint";
+
+export component Checkerboard inherits Rectangle {
+    in property <length> cell_size: 16px;
+    clip: true;
+    background: Theme.dark_mode ? #18191D : #E8E8EC;
+
+    // We can draw a subtle cross-hatch or alternating dots/rectangles or neutral tone
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: Theme.dark_mode ? #1E2025 : #F2F2F6;
+        opacity: 0.5;
+    }
+}

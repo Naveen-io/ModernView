@@ -1,0 +1,483 @@
+import { Theme } from "theme.slint";
+import { TopToolbar } from "toolbar.slint";
+import { LeftSidebar, RecentItem } from "sidebar.slint";
+import { BottomFilmstrip, FilmstripItem } from "filmstrip.slint";
+import { RightInspector } from "inspector.slint";
+import { Canvas } from "canvas.slint";
+import { EditorPanel } from "editor_panel.slint";
+import { CompareView } from "compare_view.slint";
+import { BatchView, BatchQueueItem } from "batch_view.slint";
+import { SettingsDialog } from "settings_dialog.slint";
+import { ConfirmDialog, ToastNotification } from "dialogs.slint";
+
+export component AppWindow inherits Window {
+    title: root.window_title;
+    min-width: 900px;
+    min-height: 620px;
+    preferred-width: 1440px;
+    preferred-height: 900px;
+    background: Theme.bg;
+
+    // Window title
+    in property <string> window_title: "ModernView — Modern Image Viewer";
+
+    // Application Mode: 0: Viewer, 1: Edit, 2: Batch, 3: Compare
+    in-out property <int> active_mode: 0;
+
+    // Panels visibility
+    in-out property <bool> sidebar_open: false;
+    in-out property <bool> filmstrip_open: true;
+    in-out property <bool> inspector_open: false;
+    in-out property <bool> settings_open: false;
+    in-out property <bool> confirm_dialog_open: false;
+    in-out property <bool> toast_visible: false;
+    in-out property <string> toast_message: "";
+    in-out property <bool> toast_is_error: false;
+
+    // Active Image Data
+    in property <image> current_image;
+    in property <length> img_width: 800px;
+    in property <length> img_height: 600px;
+    in property <string> filename: "No image open";
+    in property <string> filepath: "";
+    in property <string> file_format: "";
+    in property <string> file_size_str: "";
+    in property <string> dimensions_str: "";
+    in property <string> megapixels_str: "";
+    in property <string> aspect_ratio_str: "";
+    in property <string> color_type_str: "";
+    in property <bool> is_loading: false;
+
+    // Navigation state
+    in property <bool> can_prev: false;
+    in property <bool> can_next: false;
+    in property <string> current_folder: "";
+    in property <int> folder_image_index: 0;
+    in property <int> folder_image_total: 0;
+    in property <[RecentItem]> recent_items: [];
+    in property <[FilmstripItem]> filmstrip_items: [];
+
+    // Zoom & Pan state
+    in-out property <float> zoom_level: 1.0;
+    in-out property <length> pan_offset_x: 0px;
+    in-out property <length> pan_offset_y: 0px;
+
+    // Editor state
+    in-out property <float> edit_brightness: 0.0;
+    in-out property <float> edit_contrast: 0.0;
+    in-out property <float> edit_saturation: 0.0;
+    in property <bool> edit_can_undo: false;
+    in property <bool> edit_can_redo: false;
+    in property <bool> edit_has_unsaved: false;
+    in-out property <bool> edit_is_cropping: false;
+    in-out property <int> edit_crop_aspect_preset: 0;
+    in-out property <string> edit_resize_w: "1920";
+    in-out property <string> edit_resize_h: "1080";
+    in-out property <bool> edit_lock_aspect: true;
+
+    // Comparison Mode state
+    in property <image> compare_image_a;
+    in property <image> compare_image_b;
+    in property <string> compare_name_a: "Original";
+    in property <string> compare_name_b: "Comparison";
+    in property <string> compare_specs_a: "";
+    in property <string> compare_specs_b: "";
+    in property <length> compare_img_a_w: 800px;
+    in property <length> compare_img_a_h: 600px;
+    in property <length> compare_img_b_w: 800px;
+    in property <length> compare_img_b_h: 600px;
+
+    // Batch Mode state
+    in property <[BatchQueueItem]> batch_queue: [];
+    in property <int> batch_total: 0;
+    in property <int> batch_completed: 0;
+    in property <int> batch_failed: 0;
+    in property <bool> batch_is_running: false;
+    in property <float> batch_progress: 0.0;
+    in property <string> batch_status_msg: "Ready to batch process";
+    in property <string> batch_output_dir: "";
+    in-out property <int> batch_target_format: 0;
+    in-out property <float> batch_quality: 85.0;
+    in-out property <int> batch_resize_mode: 0;
+
+    // EXIF data
+    in property <bool> has_exif: false;
+    in property <string> exif_camera: "";
+    in property <string> exif_lens: "";
+    in property <string> exif_aperture: "";
+    in property <string> exif_shutter: "";
+    in property <string> exif_iso: "";
+    in property <string> exif_focal: "";
+    in property <string> exif_date: "";
+
+    // Settings
+    in-out property <bool> opt_dark_mode: true;
+    in-out property <int> opt_default_zoom: 0;
+    in-out property <float> opt_cache_limit_mb: 256.0;
+    in-out property <int> opt_default_format: 0;
+    in-out property <float> opt_default_quality: 85.0;
+    in-out property <bool> opt_confirm_overwrite: true;
+
+    // Rust Callbacks
+    callback open_file();
+    callback open_folder();
+    callback prev_image();
+    callback next_image();
+    callback zoom_in();
+    callback zoom_out();
+    callback fit_window();
+    callback actual_size();
+    callback pan_delta(length, length);
+    callback select_recent_file(string);
+    callback select_favorite_folder(string);
+    callback select_filmstrip_index(int);
+
+    // Edit callbacks
+    callback rotate_90_ccw();
+    callback rotate_90_cw();
+    callback rotate_180();
+    callback flip_horizontal();
+    callback flip_vertical();
+    callback toggle_crop();
+    callback set_crop_aspect(int);
+    callback apply_crop();
+    callback cancel_crop();
+    callback apply_resize(int, int, int);
+    callback set_resize_scale(float);
+    callback brightness_changed(float);
+    callback contrast_changed(float);
+    callback saturation_changed(float);
+    callback reset_adjustments();
+    callback undo();
+    callback redo();
+    callback revert_original();
+    callback save_overwrite();
+    callback save_as();
+    callback confirm_overwrite_action();
+    callback cancel_overwrite_action();
+
+    // Compare callbacks
+    callback swap_compare_images();
+    callback fit_both_compare();
+
+    // Batch callbacks
+    callback batch_add_files();
+    callback batch_add_folder();
+    callback batch_clear();
+    callback batch_browse_output();
+    callback batch_start(int, float, int);
+    callback batch_cancel();
+    callback batch_open_output();
+
+    // Settings callback
+    callback save_settings();
+    callback register_associations();
+
+    // Keyboard shortcut handler
+    forward-focus: key_handler;
+    key_handler := FocusScope {
+        key-pressed(event) => {
+            // Escape: Exit current tool/dialog
+            if (event.text == Key.Escape) {
+                if (root.confirm_dialog_open) {
+                    root.confirm_dialog_open = false;
+                    return EventResult.accept;
+                }
+                if (root.settings_open) {
+                    root.settings_open = false;
+                    return EventResult.accept;
+                }
+                if (root.edit_is_cropping) {
+                    root.cancel_crop();
+                    return EventResult.accept;
+                }
+                if (root.active_mode != 0) {
+                    root.active_mode = 0;
+                    return EventResult.accept;
+                }
+            }
+
+            // Ctrl combinations
+            if (event.modifiers.control) {
+                if (event.modifiers.shift && (event.text == "o" || event.text == "O")) {
+                    root.open_folder();
+                    return EventResult.accept;
+                }
+                if (event.text == "o" || event.text == "O") {
+                    root.open_file();
+                    return EventResult.accept;
+                }
+                if (event.modifiers.shift && (event.text == "s" || event.text == "S")) {
+                    root.save_as();
+                    return EventResult.accept;
+                }
+                if (event.text == "s" || event.text == "S") {
+                    root.save_overwrite();
+                    return EventResult.accept;
+                }
+                if (event.text == "z" || event.text == "Z") {
+                    root.undo();
+                    return EventResult.accept;
+                }
+                if (event.text == "y" || event.text == "Y") {
+                    root.redo();
+                    return EventResult.accept;
+                }
+            }
+
+            // Navigation arrows
+            if (event.text == Key.LeftArrow) {
+                root.prev_image();
+                return EventResult.accept;
+            }
+            if (event.text == Key.RightArrow || event.text == " ") {
+                root.next_image();
+                return EventResult.accept;
+            }
+
+            // Zoom shortcuts
+            if (event.text == "+" || event.text == "=") {
+                root.zoom_in();
+                return EventResult.accept;
+            }
+            if (event.text == "-") {
+                root.zoom_out();
+                return EventResult.accept;
+            }
+            if (event.text == "0") {
+                root.fit_window();
+                return EventResult.accept;
+            }
+            if (event.text == "1") {
+                root.actual_size();
+                return EventResult.accept;
+            }
+
+            // Tool toggles
+            if (event.text == "e" || event.text == "E") {
+                root.active_mode = (root.active_mode == 1) ? 0 : 1;
+                return EventResult.accept;
+            }
+            if (event.text == "i" || event.text == "I") {
+                root.inspector_open = !root.inspector_open;
+                return EventResult.accept;
+            }
+
+            return EventResult.reject;
+        }
+    }
+
+    // MAIN SHELL LAYOUT
+    VerticalLayout {
+        // TOP TOOLBAR
+        TopToolbar {
+            filename: root.filename;
+            dimensions_str: root.dimensions_str;
+            filesize_str: root.file_size_str;
+            zoom_level: root.zoom_level;
+            active_mode: root.active_mode;
+            sidebar_open: root.sidebar_open;
+            filmstrip_open: root.filmstrip_open;
+            inspector_open: root.inspector_open;
+            can_prev: root.can_prev;
+            can_next: root.can_next;
+
+            open_file => { root.open_file(); }
+            prev_image => { root.prev_image(); }
+            next_image => { root.next_image(); }
+            zoom_in => { root.zoom_in(); }
+            zoom_out => { root.zoom_out(); }
+            fit_window => { root.fit_window(); }
+            actual_size => { root.actual_size(); }
+            mode_changed(m) => { root.active_mode = m; }
+            toggle_sidebar => { root.sidebar_open = !root.sidebar_open; }
+            toggle_filmstrip => { root.filmstrip_open = !root.filmstrip_open; }
+            toggle_inspector => { root.inspector_open = !root.inspector_open; }
+            open_settings => { root.settings_open = true; }
+        }
+
+        // MIDDLE WORKSPACE
+        HorizontalLayout {
+            // LEFT SIDEBAR
+            LeftSidebar {
+                is_open: root.sidebar_open;
+                recent_items: root.recent_items;
+                current_folder: root.current_folder;
+
+                open_file => { root.open_file(); }
+                open_folder => { root.open_folder(); }
+                select_recent(path) => { root.select_recent_file(path); }
+                select_favorite(f) => { root.select_favorite_folder(f); }
+                close_sidebar => { root.sidebar_open = false; }
+            }
+
+            // CENTRAL VIEWPORT ACCORDING TO ACTIVE MODE
+            if (root.active_mode == 0 || root.active_mode == 1) : Canvas {
+                image_source: root.current_image;
+                img_width: root.img_width;
+                img_height: root.img_height;
+                zoom: root.zoom_level;
+                pan_offset_x: root.pan_offset_x;
+                pan_offset_y: root.pan_offset_y;
+                is_crop_active: root.edit_is_cropping;
+                is_loading: root.is_loading;
+
+                zoom_in => { root.zoom_in(); }
+                zoom_out => { root.zoom_out(); }
+                reset_view => { root.fit_window(); }
+                pan_delta(dx, dy) => { root.pan_delta(dx, dy); }
+            }
+
+            if (root.active_mode == 2) : BatchView {
+                queue_items: root.batch_queue;
+                total_items: root.batch_total;
+                completed_items: root.batch_completed;
+                failed_items: root.batch_failed;
+                is_running: root.batch_is_running;
+                progress_pct: root.batch_progress;
+                status_message: root.batch_status_msg;
+                output_directory: root.batch_output_dir;
+                target_format <=> root.batch_target_format;
+                quality <=> root.batch_quality;
+                resize_mode <=> root.batch_resize_mode;
+
+                add_files => { root.batch_add_files(); }
+                add_folder => { root.batch_add_folder(); }
+                clear_queue => { root.batch_clear(); }
+                browse_output_dir => { root.batch_browse_output(); }
+                start_batch => { root.batch_start(root.batch_target_format, root.batch_quality, root.batch_resize_mode); }
+                cancel_batch => { root.batch_cancel(); }
+                open_output_dir => { root.batch_open_output(); }
+            }
+
+            if (root.active_mode == 3) : CompareView {
+                image_a: root.compare_image_a;
+                image_b: root.compare_image_b;
+                name_a: root.compare_name_a;
+                name_b: root.compare_name_b;
+                specs_a: root.compare_specs_a;
+                specs_b: root.compare_specs_b;
+                img_a_w: root.compare_img_a_w;
+                img_a_h: root.compare_img_a_h;
+                img_b_w: root.compare_img_b_w;
+                img_b_h: root.compare_img_b_h;
+                zoom: root.zoom_level;
+                pan_x: root.pan_offset_x;
+                pan_y: root.pan_offset_y;
+
+                swap_images => { root.swap_compare_images(); }
+                fit_both => { root.fit_both_compare(); }
+                zoom_in => { root.zoom_in(); }
+                zoom_out => { root.zoom_out(); }
+                exit_compare => { root.active_mode = 0; }
+                pan_delta(dx, dy) => { root.pan_delta(dx, dy); }
+            }
+
+            // RIGHT EDITOR PANEL (visible when in Edit mode)
+            if (root.active_mode == 1) : EditorPanel {
+                brightness: root.edit_brightness;
+                contrast: root.edit_contrast;
+                saturation: root.edit_saturation;
+                can_undo: root.edit_can_undo;
+                can_redo: root.edit_can_redo;
+                has_unsaved_changes: root.edit_has_unsaved;
+                is_cropping: root.edit_is_cropping;
+                crop_aspect_preset: root.edit_crop_aspect_preset;
+                resize_w <=> root.edit_resize_w;
+                resize_h <=> root.edit_resize_h;
+                lock_aspect <=> root.edit_lock_aspect;
+
+                rotate_90_ccw => { root.rotate_90_ccw(); }
+                rotate_90_cw => { root.rotate_90_cw(); }
+                rotate_180 => { root.rotate_180(); }
+                flip_horizontal => { root.flip_horizontal(); }
+                flip_vertical => { root.flip_vertical(); }
+                toggle_crop => { root.toggle_crop(); }
+                set_crop_aspect(p) => { root.set_crop_aspect(p); }
+                apply_crop => { root.apply_crop(); }
+                cancel_crop => { root.cancel_crop(); }
+                apply_resize(w, h, f) => { root.apply_resize(w, h, f); }
+                set_resize_scale(s) => { root.set_resize_scale(s); }
+                brightness_changed(v) => { root.brightness_changed(v); }
+                contrast_changed(v) => { root.contrast_changed(v); }
+                saturation_changed(v) => { root.saturation_changed(v); }
+                reset_adjustments => { root.reset_adjustments(); }
+                undo => { root.undo(); }
+                redo => { root.redo(); }
+                revert_original => { root.revert_original(); }
+                save_overwrite => { root.save_overwrite(); }
+                save_as => { root.save_as(); }
+            }
+
+            // RIGHT INSPECTOR (visible when toggled on)
+            RightInspector {
+                is_open: root.inspector_open;
+                filename: root.filename;
+                file_format: root.file_format;
+                file_size_str: root.file_size_str;
+                file_path: root.filepath;
+                dimensions_str: root.dimensions_str;
+                megapixels_str: root.megapixels_str;
+                aspect_ratio_str: root.aspect_ratio_str;
+                color_type_str: root.color_type_str;
+                has_exif: root.has_exif;
+                exif_camera: root.exif_camera;
+                exif_lens: root.exif_lens;
+                exif_aperture: root.exif_aperture;
+                exif_shutter: root.exif_shutter;
+                exif_iso: root.exif_iso;
+                exif_focal: root.exif_focal;
+                exif_date: root.exif_date;
+
+                close_inspector => { root.inspector_open = false; }
+            }
+        }
+
+        // BOTTOM FILMSTRIP
+        BottomFilmstrip {
+            is_open: root.filmstrip_open && (root.active_mode == 0 || root.active_mode == 1);
+            items: root.filmstrip_items;
+            current_index: root.folder_image_index;
+            total_count: root.folder_image_total;
+
+            select_index(idx) => { root.select_filmstrip_index(idx); }
+            prev_image => { root.prev_image(); }
+            next_image => { root.next_image(); }
+            close_filmstrip => { root.filmstrip_open = false; }
+        }
+    }
+
+    // MODAL DIALOGS
+    SettingsDialog {
+        is_open: root.settings_open;
+        opt_dark_mode <=> root.opt_dark_mode;
+        opt_default_zoom <=> root.opt_default_zoom;
+        opt_cache_limit_mb <=> root.opt_cache_limit_mb;
+        opt_default_format <=> root.opt_default_format;
+        opt_default_quality <=> root.opt_default_quality;
+        opt_confirm_overwrite <=> root.opt_confirm_overwrite;
+
+        close_dialog => { root.settings_open = false; }
+        save_settings => { root.save_settings(); }
+        register_associations => { root.register_associations(); }
+    }
+
+    ConfirmDialog {
+        is_open: root.confirm_dialog_open;
+        confirmed => {
+            root.confirm_dialog_open = false;
+            root.confirm_overwrite_action();
+        }
+        cancelled => {
+            root.confirm_dialog_open = false;
+            root.cancel_overwrite_action();
+        }
+    }
+
+    ToastNotification {
+        is_shown: root.toast_visible;
+        message: root.toast_message;
+        is_error: root.toast_is_error;
+        dismissed => { root.toast_visible = false; }
+    }
+}

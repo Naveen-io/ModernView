@@ -1,0 +1,100 @@
+Windows Registry Editor Version 5.00
+
+; ====================================================================
+; ModernView File Associations & Shell Integration
+; Installs into Current User (No Administrator Privileges Required)
+; ====================================================================
+
+; 1. ModernView Application Handler (for Windows Open With Submenu)
+[HKEY_CURRENT_USER\Software\Classes\Applications\modernview.exe]
+@="ModernView"
+"FriendlyAppName"="ModernView"
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\modernview.exe\DefaultIcon]
+@="\"%LOCALAPPDATA%\\Programs\\ModernView\\modernview.exe\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\modernview.exe\shell\open]
+"FriendlyAppName"="ModernView"
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\modernview.exe\shell\open\command]
+@="\"%LOCALAPPDATA%\\Programs\\ModernView\\modernview.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\modernview.exe\SupportedTypes]
+".jpg"=""
+".jpeg"=""
+".png"=""
+".webp"=""
+".bmp"=""
+".gif"=""
+".tiff"=""
+".tif"=""
+".ico"=""
+
+; 2. ProgID Registration
+[HKEY_CURRENT_USER\Software\Classes\ModernView.Image]
+@="ModernView Image Document"
+"FriendlyTypeName"="ModernView Image"
+
+[HKEY_CURRENT_USER\Software\Classes\ModernView.Image\DefaultIcon]
+@="\"%LOCALAPPDATA%\\Programs\\ModernView\\modernview.exe\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\ModernView.Image\shell\open]
+@="Open with ModernView"
+
+[HKEY_CURRENT_USER\Software\Classes\ModernView.Image\shell\open\command]
+@="\"%LOCALAPPDATA%\\Programs\\ModernView\\modernview.exe\" \"%1\""
+
+; 3. Windows Explorer Context Menu for Images (SystemFileAssociations)
+[HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\image\shell\ModernView]
+@="Open with ModernView"
+"Icon"="\"%LOCALAPPDATA%\\Programs\\ModernView\\modernview.exe\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\image\shell\ModernView\command]
+@="\"%LOCALAPPDATA%\\Programs\\ModernView\\modernview.exe\" \"%1\""
+
+; 4. Extensions OpenWithProgids Registration
+[HKEY_CURRENT_USER\Software\Classes\.jpg\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.jpeg\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.png\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.webp\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.bmp\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.gif\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.tiff\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.tif\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.ico\OpenWithProgids]
+"ModernView.Image"=""
+
+; 5. Windows 10 & 11 Default Apps Integration
+[HKEY_CURRENT_USER\Software\RegisteredApplications]
+"ModernView"="Software\\ModernView\\Capabilities"
+
+[HKEY_CURRENT_USER\Software\ModernView\Capabilities]
+"ApplicationName"="ModernView"
+"ApplicationDescription"="Fast, Modern Image Viewer & Editor for Windows"
+
+[HKEY_CURRENT_USER\Software\ModernView\Capabilities\FileAssociations]
+".jpg"="ModernView.Image"
+".jpeg"="ModernView.Image"
+".png"="ModernView.Image"
+".webp"="ModernView.Image"
+".bmp"="ModernView.Image"
+".gif"="ModernView.Image"
+".tiff"="ModernView.Image"
+".tif"="ModernView.Image"
+".ico"="ModernView.Image"

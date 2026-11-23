@@ -1,0 +1,168 @@
+import { Theme } from "theme.slint";
+import { IconButton } from "components.slint";
+import { IconClose } from "icons.slint";
+
+export component MetadataRow inherits Rectangle {
+    in property <string> label: "";
+    in property <string> value: "";
+
+    height: 24px;
+    background: #00000000;
+
+    HorizontalLayout {
+        alignment: space-between;
+
+        Text {
+            text: root.label;
+            color: Theme.text_secondary;
+            font-size: 11px;
+            font-weight: 500;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.value;
+            color: Theme.text_primary;
+            font-size: 11px;
+            font-weight: 600;
+            overflow: elide;
+            max-width: 160px;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component RightInspector inherits Rectangle {
+    in property <bool> is_open: false;
+
+    // File Specs
+    in property <string> filename: "";
+    in property <string> file_format: "";
+    in property <string> file_size_str: "";
+    in property <string> file_path: "";
+
+    // Image Specs
+    in property <string> dimensions_str: "";
+    in property <string> megapixels_str: "";
+    in property <string> aspect_ratio_str: "";
+    in property <string> color_type_str: "";
+
+    // EXIF Specs
+    in property <bool> has_exif: false;
+    in property <string> exif_camera: "";
+    in property <string> exif_lens: "";
+    in property <string> exif_aperture: "";
+    in property <string> exif_shutter: "";
+    in property <string> exif_iso: "";
+    in property <string> exif_focal: "";
+    in property <string> exif_date: "";
+
+    callback close_inspector();
+
+    width: root.is_open ? 280px : 0px;
+    clip: true;
+    background: Theme.surface;
+    if (root.is_open) : Rectangle { x: 0px; width: 1px; height: 100%; background: Theme.border; }
+
+    animate width { duration: 150ms; easing: ease-out; }
+
+    Flickable {
+        width: 280px;
+
+        VerticalLayout {
+            padding: 14px;
+            spacing: 16px;
+
+            // Header
+            HorizontalLayout {
+                alignment: space-between;
+
+                Text {
+                    text: "Inspector";
+                    color: Theme.text_primary;
+                    font-size: 13px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+
+                IconButton {
+                    button_size: 24px;
+                    tooltip: "Close Inspector";
+                    clicked => { root.close_inspector(); }
+                    IconClose {
+                        icon_color: Theme.text_secondary;
+                        width: 14px;
+                        height: 14px;
+                    }
+                }
+            }
+
+            // File Section
+            VerticalLayout {
+                spacing: 6px;
+
+                Text {
+                    text: "FILE DETAILS";
+                    color: Theme.text_muted;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+
+                MetadataRow { label: "Name"; value: root.filename; }
+                MetadataRow { label: "Format"; value: root.file_format; }
+                MetadataRow { label: "Size"; value: root.file_size_str; }
+            }
+
+            // Image Dimensions Section
+            VerticalLayout {
+                spacing: 6px;
+
+                Text {
+                    text: "IMAGE SPECIFICATIONS";
+                    color: Theme.text_muted;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+
+                MetadataRow { label: "Dimensions"; value: root.dimensions_str; }
+                MetadataRow { label: "Megapixels"; value: root.megapixels_str; }
+                MetadataRow { label: "Aspect Ratio"; value: root.aspect_ratio_str; }
+                MetadataRow { label: "Color Depth"; value: root.color_type_str; }
+            }
+
+            // EXIF Section
+            VerticalLayout {
+                spacing: 6px;
+
+                Text {
+                    text: "EXIF METADATA";
+                    color: Theme.text_muted;
+                    font-size: 10px;
+                    font-weight: 700;
+                    letter-spacing: 0.5px;
+                }
+
+                if (!root.has_exif) : Text {
+                    text: "No EXIF data found in this image";
+                    color: Theme.text_muted;
+                    font-size: 11px;
+                    font-italic: true;
+                }
+
+                if (root.has_exif) : VerticalLayout {
+                    spacing: 4px;
+
+                    if (root.exif_camera != "") : MetadataRow { label: "Camera"; value: root.exif_camera; }
+                    if (root.exif_lens != "") : MetadataRow { label: "Lens"; value: root.exif_lens; }
+                    if (root.exif_aperture != "") : MetadataRow { label: "Aperture"; value: root.exif_aperture; }
+                    if (root.exif_shutter != "") : MetadataRow { label: "Shutter"; value: root.exif_shutter; }
+                    if (root.exif_iso != "") : MetadataRow { label: "ISO"; value: root.exif_iso; }
+                    if (root.exif_focal != "") : MetadataRow { label: "Focal Length"; value: root.exif_focal; }
+                    if (root.exif_date != "") : MetadataRow { label: "Date Taken"; value: root.exif_date; }
+                }
+            }
+        }
+    }
+}

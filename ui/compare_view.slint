@@ -1,0 +1,250 @@
+import { Theme } from "theme.slint";
+import { ActionButton, IconButton, Badge } from "components.slint";
+import { IconSwap, IconFit, IconClose, IconZoomIn, IconZoomOut } from "icons.slint";
+import { Checkerboard } from "checkerboard.slint";
+
+export component CompareView inherits Rectangle {
+    in property <image> image_a;
+    in property <image> image_b;
+    in property <string> name_a: "Original";
+    in property <string> name_b: "Comparison";
+    in property <string> specs_a: "";
+    in property <string> specs_b: "";
+
+    in property <length> img_a_w: 600px;
+    in property <length> img_a_h: 400px;
+    in property <length> img_b_w: 600px;
+    in property <length> img_b_h: 400px;
+
+    in property <float> zoom: 1.0;
+    in property <length> pan_x: 0px;
+    in property <length> pan_y: 0px;
+
+    callback swap_images();
+    callback fit_both();
+    callback zoom_in();
+    callback zoom_out();
+    callback exit_compare();
+    callback pan_delta(length, length);
+
+    background: Theme.bg;
+
+    VerticalLayout {
+        // Comparison top control bar
+        Rectangle {
+            height: 42px;
+            background: Theme.surface;
+            Rectangle { y: parent.height - 1px; height: 1px; width: 100%; background: Theme.border; }
+
+            HorizontalLayout {
+                padding-left: 14px;
+                padding-right: 14px;
+                alignment: space-between;
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+
+                    Text {
+                        text: "Side-by-Side Comparison";
+                        color: Theme.text_primary;
+                        font-size: 13px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+
+                    Badge {
+                        text: "Synchronized Pan & Zoom";
+                        y: 11px;
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 6px;
+                    alignment: end;
+
+                    ActionButton {
+                        text: "Swap (A ↔ B)";
+                        min_btn_width: 100px;
+                        clicked => { root.swap_images(); }
+                    }
+
+                    ActionButton {
+                        text: "Fit Both";
+                        min_btn_width: 80px;
+                        clicked => { root.fit_both(); }
+                    }
+
+                    IconButton {
+                        tooltip: "Zoom Out";
+                        clicked => { root.zoom_out(); }
+                        IconZoomOut { icon_color: Theme.text_primary; }
+                    }
+
+                    IconButton {
+                        tooltip: "Zoom In";
+                        clicked => { root.zoom_in(); }
+                        IconZoomIn { icon_color: Theme.text_primary; }
+                    }
+
+                    ActionButton {
+                        text: "Exit Compare";
+                        primary: true;
+                        min_btn_width: 100px;
+                        clicked => { root.exit_compare(); }
+                    }
+                }
+            }
+        }
+
+        // Split canvas area
+        HorizontalLayout {
+            // Left Pane (Image A)
+            Rectangle {
+                clip: true;
+                Rectangle { x: parent.width - 1px; width: 1px; height: 100%; background: Theme.border; z: 15; }
+
+                Checkerboard { width: 100%; height: 100%; }
+
+                // Label tag
+                Rectangle {
+                    x: 12px; y: 12px;
+                    height: 24px;
+                    border-radius: Theme.radius_sm;
+                    background: #000000B0;
+                    border-width: 1px;
+                    border-color: #FFFFFF30;
+                    z: 10;
+
+                    HorizontalLayout {
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        spacing: 6px;
+
+                        Text {
+                            text: "A: " + root.name_a + " " + root.specs_a;
+                            color: #FFFFFF;
+                            font-size: 11px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                TouchArea {
+                    width: 100%; height: 100%;
+                    property <length> drag_x: 0px;
+                    property <length> drag_y: 0px;
+
+                    pointer-event(event) => {
+                        if (event.kind == PointerEventKind.down) {
+                            drag_x = self.mouse-x;
+                            drag_y = self.mouse-y;
+                        }
+                    }
+                    moved => {
+                        if (self.pressed) {
+                            let dx = self.mouse-x - drag_x;
+                            let dy = self.mouse-y - drag_y;
+                            drag_x = self.mouse-x;
+                            drag_y = self.mouse-y;
+                            root.pan_delta(dx, dy);
+                        }
+                    }
+                    scroll-event(event) => {
+                        if (event.delta-y > 0) { root.zoom_in(); }
+                        else if (event.delta-y < 0) { root.zoom_out(); }
+                        return EventResult.accept;
+                    }
+                }
+
+                // Centered view
+                Rectangle {
+                    x: (parent.width - self.width) / 2 + root.pan_x;
+                    y: (parent.height - self.height) / 2 + root.pan_y;
+                    width: root.img_a_w * root.zoom;
+                    height: root.img_a_h * root.zoom;
+
+                    Image {
+                        width: 100%; height: 100%;
+                        source: root.image_a;
+                        image-fit: fill;
+                    }
+                }
+            }
+
+            // Right Pane (Image B)
+            Rectangle {
+                clip: true;
+
+                Checkerboard { width: 100%; height: 100%; }
+
+                // Label tag
+                Rectangle {
+                    x: 12px; y: 12px;
+                    height: 24px;
+                    border-radius: Theme.radius_sm;
+                    background: #000000B0;
+                    border-width: 1px;
+                    border-color: #FFFFFF30;
+                    z: 10;
+
+                    HorizontalLayout {
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        spacing: 6px;
+
+                        Text {
+                            text: "B: " + root.name_b + " " + root.specs_b;
+                            color: #FFFFFF;
+                            font-size: 11px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                TouchArea {
+                    width: 100%; height: 100%;
+                    property <length> drag_x: 0px;
+                    property <length> drag_y: 0px;
+
+                    pointer-event(event) => {
+                        if (event.kind == PointerEventKind.down) {
+                            drag_x = self.mouse-x;
+                            drag_y = self.mouse-y;
+                        }
+                    }
+                    moved => {
+                        if (self.pressed) {
+                            let dx = self.mouse-x - drag_x;
+                            let dy = self.mouse-y - drag_y;
+                            drag_x = self.mouse-x;
+                            drag_y = self.mouse-y;
+                            root.pan_delta(dx, dy);
+                        }
+                    }
+                    scroll-event(event) => {
+                        if (event.delta-y > 0) { root.zoom_in(); }
+                        else if (event.delta-y < 0) { root.zoom_out(); }
+                        return EventResult.accept;
+                    }
+                }
+
+                // Centered view
+                Rectangle {
+                    x: (parent.width - self.width) / 2 + root.pan_x;
+                    y: (parent.height - self.height) / 2 + root.pan_y;
+                    width: root.img_b_w * root.zoom;
+                    height: root.img_b_h * root.zoom;
+
+                    Image {
+                        width: 100%; height: 100%;
+                        source: root.image_b;
+                        image-fit: fill;
+                    }
+                }
+            }
+        }
+    }
+}

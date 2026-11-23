@@ -1,0 +1,380 @@
+import { Theme } from "theme.slint";
+import { ActionButton, IconButton, Badge, SliderRow } from "components.slint";
+import { IconFolderOpen, IconTrash, IconPlus, IconCheck, IconClose } from "icons.slint";
+
+export struct BatchQueueItem {
+    id: int,
+    filename: string,
+    file_path: string,
+    file_size_str: string,
+    status: string, // "Queued", "Processing", "Done", "Failed"
+    is_done: bool,
+    is_failed: bool,
+}
+
+export component BatchView inherits Rectangle {
+    in property <[BatchQueueItem]> queue_items: [];
+    in property <int> total_items: 0;
+    in property <int> completed_items: 0;
+    in property <int> failed_items: 0;
+    in property <bool> is_running: false;
+    in property <float> progress_pct: 0.0; // 0.0 to 1.0
+    in property <string> status_message: "Ready to batch process";
+    in property <string> output_directory: "";
+
+    // Settings
+    in-out property <int> target_format: 0; // 0: JPEG, 1: PNG, 2: WebP, 3: BMP, 4: TIFF
+    in-out property <float> quality: 85.0;
+    in-out property <int> resize_mode: 0; // 0: None, 1: Max 1920px, 2: Max 1280px, 3: Scale 50%, 4: Scale 75%
+
+    callback add_files();
+    callback add_folder();
+    callback clear_queue();
+    callback browse_output_dir();
+    callback start_batch();
+    callback cancel_batch();
+    callback open_output_dir();
+
+    background: Theme.bg;
+
+    HorizontalLayout {
+        // Left Column: Queue List
+        VerticalLayout {
+            padding: 16px;
+            spacing: 12px;
+
+            // Header & Queue controls
+            HorizontalLayout {
+                alignment: space-between;
+
+                VerticalLayout {
+                    spacing: 2px;
+                    Text {
+                        text: "Batch Processing Queue";
+                        color: Theme.text_primary;
+                        font-size: 14px;
+                        font-weight: 700;
+                    }
+                    Text {
+                        text: root.total_items + " items in queue (" + root.completed_items + " completed, " + root.failed_items + " failed)";
+                        color: Theme.text_secondary;
+                        font-size: 11px;
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 6px;
+
+                    ActionButton {
+                        text: "+ Add Files...";
+                        min_btn_width: 96px;
+                        disabled: root.is_running;
+                        clicked => { root.add_files(); }
+                    }
+
+                    ActionButton {
+                        text: "+ Add Folder...";
+                        min_btn_width: 104px;
+                        disabled: root.is_running;
+                        clicked => { root.add_folder(); }
+                    }
+
+                    ActionButton {
+                        text: "Clear Queue";
+                        danger: true;
+                        min_btn_width: 90px;
+                        disabled: root.is_running || root.total_items == 0;
+                        clicked => { root.clear_queue(); }
+                    }
+                }
+            }
+
+            // Table / List
+            Rectangle {
+                border-radius: Theme.radius_md;
+                background: Theme.surface;
+                border-width: 1px;
+                border-color: Theme.border;
+
+                Flickable {
+                    VerticalLayout {
+                        padding: 8px;
+                        spacing: 4px;
+
+                        if (root.total_items == 0) : Text {
+                            text: "No images queued. Click '+ Add Files' or '+ Add Folder' to begin.";
+                            color: Theme.text_muted;
+                            font-size: 12px;
+                            horizontal-alignment: center;
+                        }
+
+                        for item in root.queue_items : Rectangle {
+                            height: 36px;
+                            border-radius: Theme.radius_sm;
+                            background: item.is_done ? (Theme.dark_mode ? #1E2822 : #ECFDF5) : (
+                                item.is_failed ? (Theme.dark_mode ? #2B1E1E : #FEF2F2) : (
+                                    Theme.dark_mode ? #22242B : #F7F7FA
+                                )
+                            );
+                            border-width: 1px;
+                            border-color: Theme.border_subtle;
+
+                            HorizontalLayout {
+                                padding-left: 12px;
+                                padding-right: 12px;
+                                alignment: space-between;
+
+                                HorizontalLayout {
+                                    spacing: 10px;
+                                    alignment: start;
+
+                                    Text {
+                                        text: item.filename;
+                                        color: Theme.text_primary;
+                                        font-size: 12px;
+                                        font-weight: 500;
+                                        overflow: elide;
+                                        max-width: 320px;
+                                        vertical-alignment: center;
+                                    }
+
+                                    Text {
+                                        text: item.file_size_str;
+                                        color: Theme.text_muted;
+                                        font-size: 11px;
+                                        vertical-alignment: center;
+                                    }
+                                }
+
+                                Badge {
+                                    text: item.status;
+                                    text_color: item.is_done ? Theme.success : (
+                                        item.is_failed ? Theme.danger : Theme.text_secondary
+                                    );
+                                    y: 8px;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Bottom Progress Bar & Execution row
+            Rectangle {
+                height: 56px;
+                border-radius: Theme.radius_md;
+                background: Theme.surface;
+                border-width: 1px;
+                border-color: Theme.border;
+
+                HorizontalLayout {
+                    padding-left: 14px;
+                    padding-right: 14px;
+                    spacing: 16px;
+                    alignment: space-between;
+
+                    VerticalLayout {
+                        spacing: 4px;
+                        alignment: center;
+
+                        Text {
+                            text: root.status_message;
+                            color: Theme.text_primary;
+                            font-size: 12px;
+                            font-weight: 500;
+                        }
+
+                        // Progress bar track
+                        Rectangle {
+                            height: 6px;
+                            min-width: 320px;
+                            border-radius: 3px;
+                            background: Theme.dark_mode ? #262830 : #E2E2E6;
+
+                            // Fill
+                            Rectangle {
+                                x: 0px;
+                                width: parent.width * Math.max(0.0, Math.min(1.0, root.progress_pct));
+                                height: 100%;
+                                border-radius: 3px;
+                                background: Theme.accent;
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: center;
+
+                        if (!root.is_running) : ActionButton {
+                            text: "Start Batch Processing";
+                            primary: true;
+                            min_btn_width: 160px;
+                            disabled: root.total_items == 0;
+                            clicked => { root.start_batch(); }
+                        }
+
+                        if (root.is_running) : ActionButton {
+                            text: "Cancel";
+                            danger: true;
+                            min_btn_width: 100px;
+                            clicked => { root.cancel_batch(); }
+                        }
+
+                        if (!root.is_running && root.completed_items > 0) : ActionButton {
+                            text: "Open Output Folder";
+                            min_btn_width: 140px;
+                            clicked => { root.open_output_dir(); }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Right Column: Batch Output Settings
+        Rectangle {
+            width: 320px;
+            background: Theme.surface;
+            Rectangle { x: 0px; width: 1px; height: 100%; background: Theme.border; }
+
+            Flickable {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 18px;
+
+                    Text {
+                        text: "Batch Output Options";
+                        color: Theme.text_primary;
+                        font-size: 13px;
+                        font-weight: 700;
+                    }
+
+                    // Format selection
+                    VerticalLayout {
+                        spacing: 8px;
+
+                        Text {
+                            text: "TARGET FORMAT";
+                            color: Theme.text_muted;
+                            font-size: 10px;
+                            font-weight: 700;
+                            letter-spacing: 0.5px;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 4px;
+
+                            ActionButton {
+                                text: "JPEG"; min_btn_width: 52px;
+                                primary: root.target_format == 0;
+                                clicked => { root.target_format = 0; }
+                            }
+                            ActionButton {
+                                text: "PNG"; min_btn_width: 52px;
+                                primary: root.target_format == 1;
+                                clicked => { root.target_format = 1; }
+                            }
+                            ActionButton {
+                                text: "WebP"; min_btn_width: 52px;
+                                primary: root.target_format == 2;
+                                clicked => { root.target_format = 2; }
+                            }
+                            ActionButton {
+                                text: "BMP"; min_btn_width: 52px;
+                                primary: root.target_format == 3;
+                                clicked => { root.target_format = 3; }
+                            }
+                            ActionButton {
+                                text: "TIFF"; min_btn_width: 52px;
+                                primary: root.target_format == 4;
+                                clicked => { root.target_format = 4; }
+                            }
+                        }
+                    }
+
+                    // Quality slider (for JPEG and WebP)
+                    if (root.target_format == 0 || root.target_format == 2) : SliderRow {
+                        label: "Encoding Quality";
+                        value: root.quality;
+                        min_val: 10.0;
+                        max_val: 100.0;
+                        default_val: 85.0;
+                        suffix: "%";
+                        value_changed(v) => { root.quality = v; }
+                        reset_clicked => { root.quality = 85.0; }
+                    }
+
+                    // Batch Resize mode
+                    VerticalLayout {
+                        spacing: 8px;
+
+                        Text {
+                            text: "BATCH RESIZE";
+                            color: Theme.text_muted;
+                            font-size: 10px;
+                            font-weight: 700;
+                            letter-spacing: 0.5px;
+                        }
+
+                        ActionButton {
+                            text: "Keep Original Dimensions";
+                            min_btn_width: 288px;
+                            primary: root.resize_mode == 0;
+                            clicked => { root.resize_mode = 0; }
+                        }
+                        ActionButton {
+                            text: "Fit Within 1920 × 1080 (Full HD)";
+                            min_btn_width: 288px;
+                            primary: root.resize_mode == 1;
+                            clicked => { root.resize_mode = 1; }
+                        }
+                        ActionButton {
+                            text: "Fit Within 1280 × 720 (HD)";
+                            min_btn_width: 288px;
+                            primary: root.resize_mode == 2;
+                            clicked => { root.resize_mode = 2; }
+                        }
+                        ActionButton {
+                            text: "Scale Down to 50%";
+                            min_btn_width: 288px;
+                            primary: root.resize_mode == 3;
+                            clicked => { root.resize_mode = 3; }
+                        }
+                        ActionButton {
+                            text: "Scale Down to 75%";
+                            min_btn_width: 288px;
+                            primary: root.resize_mode == 4;
+                            clicked => { root.resize_mode = 4; }
+                        }
+                    }
+
+                    // Output Folder picker
+                    VerticalLayout {
+                        spacing: 6px;
+
+                        Text {
+                            text: "OUTPUT DESTINATION";
+                            color: Theme.text_muted;
+                            font-size: 10px;
+                            font-weight: 700;
+                            letter-spacing: 0.5px;
+                        }
+
+                        Text {
+                            text: (root.output_directory != "") ? root.output_directory : "Output folder: same as source folder (with prefix)";
+                            color: Theme.text_secondary;
+                            font-size: 11px;
+                            overflow: elide;
+                        }
+
+                        ActionButton {
+                            text: "Choose Output Folder...";
+                            min_btn_width: 288px;
+                            clicked => { root.browse_output_dir(); }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
