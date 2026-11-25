@@ -1,5 +1,7 @@
 # Build artifacts
 /target
+/dist
+*.zip
 **/*.rs.bk
 *.pdb
 
@@ -16,6 +18,7 @@ ehthumbs.db
 Desktop.ini
 
 # Temporary and local files
+startup_timing.txt
 *.tmp
 *.log
 .env

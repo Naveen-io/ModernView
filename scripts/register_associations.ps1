@@ -73,6 +73,12 @@ Windows Registry Editor Version 5.00
 ".tiff"=""
 ".tif"=""
 ".ico"=""
+".avif"=""
+".heic"=""
+".heif"=""
+".qoi"=""
+".tga"=""
+".hdr"=""
 
 ; ProgID Registration
 [HKEY_CURRENT_USER\Software\Classes\ModernView.Image]
@@ -124,6 +130,24 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Classes\.ico\OpenWithProgids]
 "ModernView.Image"=""
 
+[HKEY_CURRENT_USER\Software\Classes\.avif\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.heic\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.heif\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.qoi\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.tga\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.hdr\OpenWithProgids]
+"ModernView.Image"=""
+
 ; Windows Default Apps Integration (HKCU)
 [HKEY_CURRENT_USER\Software\RegisteredApplications]
 "ModernView"="Software\\ModernView\\Capabilities"
@@ -142,6 +166,12 @@ Windows Registry Editor Version 5.00
 ".tiff"="ModernView.Image"
 ".tif"="ModernView.Image"
 ".ico"="ModernView.Image"
+".avif"="ModernView.Image"
+".heic"="ModernView.Image"
+".heif"="ModernView.Image"
+".qoi"="ModernView.Image"
+".tga"="ModernView.Image"
+".hdr"="ModernView.Image"
 "@
 
 # If Admin, also register in HKLM for all users on the device
@@ -173,6 +203,12 @@ if ($isAdmin) {
 ".tiff"=""
 ".tif"=""
 ".ico"=""
+".avif"=""
+".heic"=""
+".heif"=""
+".qoi"=""
+".tga"=""
+".hdr"=""
 
 [HKEY_LOCAL_MACHINE\Software\Classes\ModernView.Image]
 @="ModernView Image Document"
@@ -211,6 +247,12 @@ if ($isAdmin) {
 ".tiff"="ModernView.Image"
 ".tif"="ModernView.Image"
 ".ico"="ModernView.Image"
+".avif"="ModernView.Image"
+".heic"="ModernView.Image"
+".heif"="ModernView.Image"
+".qoi"="ModernView.Image"
+".tga"="ModernView.Image"
+".hdr"="ModernView.Image"
 "@
 }
 

@@ -2297,6 +2297,7 @@ dependencies = [
  "moxcms",
  "num-traits",
  "png",
+ "qoi",
  "tiff",
  "zune-core",
  "zune-jpeg",
@@ -2737,12 +2738,14 @@ dependencies = [
  "fast_image_resize",
  "image",
  "kamadak-exif",
+ "oxideav-avif",
  "rayon",
  "rfd",
  "serde",
  "serde_json",
  "slint",
  "slint-build",
+ "zune-heic",
 ]
 
 [[package]]
@@ -3286,6 +3289,43 @@ dependencies = [
 ]
 
 [[package]]
+name = "oxideav-av1"
+version = "0.1.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "166904a6f5742c4eec359f32ff0fe4c269bbc54f4424291567827f483071b8de"
+dependencies = [
+ "oxideav-core",
+]
+
+[[package]]
+name = "oxideav-avif"
+version = "0.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcaf60ff8283c30fc9e84e462fc9a9e016f5f4e4f1ab1817a15cebf2885b1cee"
+dependencies = [
+ "oxideav-av1",
+ "oxideav-core",
+ "oxideav-heif",
+]
+
+[[package]]
+name = "oxideav-core"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce90bfbe978dfc46d0c98d137b7c4566ac8eaae8c9209585eb53a8aedb0ef53c"
+dependencies = [
+ "bytemuck",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "oxideav-heif"
+version = "0.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71512adf3a5d85ecf09e3af36c3ee5c012178e26753bbfd77a2f2cd9e38bd2c9"
+
+[[package]]
 name = "parking"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3631,6 +3671,15 @@ name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
+
+[[package]]
+name = "qoi"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f6d64c71eb498fe9eae14ce4ec935c555749aef511cca85b5568910d6e48001"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "quick-error"
@@ -6068,6 +6117,25 @@ name = "zune-core"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d56377fd46368984a170bc5aac5567e52ca5da874caa60bea39fcbca78fb658b"
+
+[[package]]
+name = "zune-heic"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "506a37d813547dfb1f4528f5d6ce1e266a421957d2d408fdc6b9d642f01a0d0f"
+dependencies = [
+ "zune-core",
+ "zune-isobmff",
+]
+
+[[package]]
+name = "zune-isobmff"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e66e17f976deba786f15863bc7431554bf6239f2166d43123df0e063a2500f2"
+dependencies = [
+ "zune-core",
+]
 
 [[package]]
 name = "zune-jpeg"

@@ -51,31 +51,94 @@ ModernView is a desktop image application written in Rust using the Slint UI fra
 
 ---
 
-## Supported Formats
+## Download & Installation
 
-- **JPEG / JPG**: Full reading and quality-controlled encoding.
-- **PNG**: Full 32-bit RGBA decoding and lossless export.
-- **WebP**: Modern lossy and lossless image viewing and export.
-- **BMP**: Standard uncompressed Windows bitmap images.
-- **GIF**: Image preview for static and animated image files.
-- **TIFF / TIF**: Baseline multi-channel TIFF images.
-- **ICO**: Standard Windows icon files.
+You **do not** need Rust or build tools installed to run ModernView.
+
+- **Standalone Portable**: Download [`ModernView-v0.1.0-windows-x64.zip`](https://github.com/Naveen-io/ModernView/releases), extract anywhere, and run `modernview.exe` directly.
+- **One-Click Windows Setup**: Run `setup.bat` inside the extracted folder. It installs ModernView to `%LOCALAPPDATA%\Programs\ModernView`, creates Desktop and Start Menu shortcuts, and registers Windows "Open With" context menus and Default App associations.
+- **Clean Uninstallation**: Run `uninstall.bat` at any time to remove all shortcuts, registry keys, and program files.
 
 ---
 
-## Performance Benchmarks
+## Memory Footprint & Resource Telemetry
 
-Measured on Windows 64-bit (Release build, LTO enabled):
+ModernView is engineered for minimal resource consumption and zero bloat:
 
-| Operation | Target | Speed |
-| :--- | :--- | :--- |
-| **WebP Cold Decode** | 1920 × 1080 | ~12.8 ms (77+ fps) |
-| **JPEG Cold Decode** | 1920 × 1080 | ~16.8 ms (59+ fps) |
-| **PNG Cold Decode** | 1920 × 1080 | ~27.3 ms (36+ fps) |
-| **Lanczos3 High-Quality Resample** | 1080p → 540p | ~20.8 ms (47+ fps) |
-| **Thumbnail Generation** | 1080p → 96px | ~23.8 ms (42 previews/sec) |
-| **Adjustment Calculation** | 2.07M Pixels (LUT) | ~26.9 ms (77 MP/sec) |
-| **Parallel Batch Run** | 10 images | ~0.35 s (28+ images/sec) |
+- **Executable Size**: **18.16 MB** standalone native executable (7.8 MB compressed in release ZIP) containing all GUI assets, fonts, icons, decoders, and SIMD resizers. Zero external DLLs or runtimes required.
+- **Idle Memory (RAM)**: **~80 MB** private working set on cold startup (~150 MB total working set including the Windows 11 GPU DirectX swapchain).
+- **Active Viewing (RAM)**: **~190 MB** private working set under active viewing of full-resolution images with preloaded filmstrip previews and the LRU background cache.
+- **Cache Management**: Bounded LRU in-memory image cache with user-configurable memory limits (Settings > Cache Limit) to prevent RAM runaway.
+
+---
+
+## Supported Formats
+
+ModernView includes native, memory-safe pure-Rust decoders for a wide variety of modern and traditional formats:
+
+| Format | Extensions | Capabilities | Decoder Engine |
+| :--- | :--- | :--- | :--- |
+| **JPEG** | `.jpg`, `.jpeg` | Read & Quality-Controlled Write | `image` (zune-jpeg) |
+| **PNG** | `.png` | Read & Lossless Write (32-bit RGBA) | `image` (png-rs) |
+| **WebP** | `.webp` | Read & Lossy/Lossless Write | `image` (image-webp) |
+| **AVIF** | `.avif` | Read (AV1 Still Image) | `oxideav-avif` |
+| **HEIC / HEIF**| `.heic`, `.heif` | Read (iPhone & Camera HEVC Stills) | `zune-heic` (SSE4.1 SIMD) |
+| **QOI** | `.qoi` | Read (Quite OK Image format) | `qoi` |
+| **TGA** | `.tga` | Read (Gaming & 3D textures) | `image` (tga) |
+| **HDR** | `.hdr` | Read (Radiance High Dynamic Range) | `image` (hdr) |
+| **BMP** | `.bmp` | Read (Standard Windows Bitmap) | `image` (bmp) |
+| **GIF** | `.gif` | Read (Static & Animated preview) | `image` (gif) |
+| **TIFF** | `.tiff`, `.tif` | Read (Baseline Multi-channel TIFF) | `image` (tiff) |
+| **ICO** | `.ico` | Read (Windows Icon resources) | `image` (ico) |
+| **PNM** | `.ppm`, `.pgm`, `.pbm`, `.pnm` | Read (Portable Anymap) | `image` (pnm) |
+| **Farbfeld** | `.ff` | Read (16-bit RGBA raw format) | `image` (ff) |
+
+---
+
+## Performance Benchmarks & Methodology
+
+### Test Environment
+- **CPU**: 11th Gen Intel(R) Core(TM) i5-11400H @ 2.70GHz (6 physical cores, 12 logical threads, AVX2/AVX-512)
+- **RAM**: 16 GB DDR4 (3200 MHz)
+- **OS**: Microsoft Windows 11 Pro 64-bit (Version 10.0.26300)
+- **Storage**: High-Speed NVMe PCIe M.2 SSD
+- **Build**: Rust 1.99.0 (`x86_64-pc-windows-msvc`), Release profile (`opt-level = 3`, `lto = "thin"`, `codegen-units = 1`, `panic = "abort"`, `strip = true`)
+
+### Benchmark Dataset & Results
+Measured across realistic 1080p (1920 × 1080, 2.07 Megapixels) and 4K images averaged over 10 to 50 iterations:
+
+| Operation | Target / Dataset | Latency | Throughput |
+| :--- | :--- | :--- | :--- |
+| **WebP Cold Decode** | 1080p (1920 × 1080) | **8.48 ms** | **117.9 fps** |
+| **JPEG Cold Decode** | 1080p (1920 × 1080) | **16.00 ms** | **62.5 fps** |
+| **PNG Cold Decode** | 1080p (1920 × 1080) | **25.53 ms** | **39.2 fps** |
+| **Lanczos3 High-Quality Resample** | 1080p → 540p | **16.34 ms** | **61.2 fps** |
+| **Bilinear Resample** | 1080p → 540p | **13.86 ms** | **72.2 fps** |
+| **Thumbnail Generation** | 1080p → 96px filmstrip preview | **8.20 ms** | **122 thumbnails/sec** |
+| **Live Adjustments (LUT)** | 1080p (2.07M Pixels) | **13.84 ms** | **149.8 MP/sec** |
+| **Parallel Batch Processing** | 10 images concurrent (Rayon) | **0.19 s total** | **52.0 images/sec** |
+
+You can reproduce these benchmarks at any time on your own machine:
+```cmd
+cargo run --release --bin benchmark
+```
+
+---
+
+## Why ModernView? (Comparison with Legacy Viewers)
+
+Established viewers like IrfanView have been developed for decades and offer specialized legacy features such as TWAIN scanner drivers and 32-bit Adobe 8BF plugins. ModernView is not designed to replace niche 1990s desktop workflows; it is built ground-up for 2026 workflows:
+
+1. **Memory Safety & Zero Vulnerabilities**:
+   Decades of C/C++ image parsing code in legacy viewers have been a constant source of CVE security advisories (heap buffer overflows, out-of-bounds reads, arbitrary code execution via crafted image headers). ModernView is written in **100% memory-safe Rust**, ensuring bounds checking and memory safety across all decoders.
+2. **Hardware-Accelerated UI & High-DPI Fluidity**:
+   Legacy Win32 GDI interfaces frequently experience blurriness, tearing, or broken fractional scaling on 4K/HDR Windows 11 monitors. ModernView uses Slint's direct GPU pipeline (DirectX/FemtoVG), delivering smooth 120Hz/144Hz trackpad zooming, cursor-centered panning, and crisp sub-pixel text.
+3. **Interactive A/B Comparison Engine**:
+   Native side-by-side comparison with synchronized pan/zoom and difference sliders, allowing photographers and designers to compare compression levels or color grades without third-party plugins.
+4. **Predictive Multithreaded Caching**:
+   ModernView pre-decodes adjacent images on background worker threads using Rayon work-stealing, giving you instant (0 ms perceived latency) browsing through large folders of photos.
+5. **Completely Self-Contained & Respectful**:
+   No background telemetry, no autoupdaters silently running in Task Manager, no advertisements, and a single portable ~18 MB binary that doesn't litter your system registry unless you explicitly choose to register file associations.
 
 ---
 

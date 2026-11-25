@@ -106,6 +106,13 @@ pub fn read_image_metadata(path: &Path, width: u32, height: u32, color_type: &st
         "BMP" => "BMP",
         "TIFF" | "TIF" => "TIFF",
         "ICO" => "ICO",
+        "AVIF" => "AVIF",
+        "HEIC" | "HEIF" => "HEIC/HEIF",
+        "QOI" => "QOI",
+        "TGA" => "TGA",
+        "HDR" => "HDR",
+        "PPM" | "PGM" | "PBM" | "PNM" => "PNM",
+        "FF" => "Farbfeld",
         other => other,
     }
     .to_string();

@@ -4,7 +4,7 @@ use std::process::Command;
 pub fn parse_cli_image_path() -> Option<PathBuf> {
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
-        if arg == "--register" {
+        if arg == "--register" || arg == "--set-default" {
             let _ = register_windows_integration();
             continue;
         }
@@ -24,7 +24,8 @@ pub fn parse_cli_image_path() -> Option<PathBuf> {
 /// 2. ProgID ModernView.Image with icon and open command
 /// 3. Direct Explorer right-click context menu via SystemFileAssociations\image
 /// 4. File extension associations (.jpg, .jpeg, .png, .webp, .bmp, .gif, .tiff, .tif, .ico)
-/// 5. Windows 10/11 RegisteredApplications capability (Settings > Default Apps)
+/// 5. Sets ModernView as Default Handler for each format in HKCU\Software\Classes
+/// 6. Windows 10/11 RegisteredApplications capability (Settings > Default Apps)
 pub fn generate_file_associations_reg_script() -> Result<PathBuf, String> {
     let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
     let exe_escaped = exe_path.to_string_lossy().replace('\\', "\\\\");
@@ -62,6 +63,12 @@ pub fn generate_file_associations_reg_script() -> Result<PathBuf, String> {
 ".tiff"=""
 ".tif"=""
 ".ico"=""
+".avif"=""
+".heic"=""
+".heif"=""
+".qoi"=""
+".tga"=""
+".hdr"=""
 
 ; 2. ProgID Registration
 [HKEY_CURRENT_USER\Software\Classes\ModernView.Image]
@@ -85,32 +92,95 @@ pub fn generate_file_associations_reg_script() -> Result<PathBuf, String> {
 [HKEY_CURRENT_USER\Software\Classes\SystemFileAssociations\image\shell\ModernView\command]
 @="\"{exe}\" \"%1\""
 
-; 4. File Extension OpenWith Registration
+; 4. File Extension Default Association & OpenWith Registration
+[HKEY_CURRENT_USER\Software\Classes\.jpg]
+@="ModernView.Image"
+
 [HKEY_CURRENT_USER\Software\Classes\.jpg\OpenWithProgids]
 "ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.jpeg]
+@="ModernView.Image"
 
 [HKEY_CURRENT_USER\Software\Classes\.jpeg\OpenWithProgids]
 "ModernView.Image"=""
 
+[HKEY_CURRENT_USER\Software\Classes\.png]
+@="ModernView.Image"
+
 [HKEY_CURRENT_USER\Software\Classes\.png\OpenWithProgids]
 "ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.webp]
+@="ModernView.Image"
 
 [HKEY_CURRENT_USER\Software\Classes\.webp\OpenWithProgids]
 "ModernView.Image"=""
 
+[HKEY_CURRENT_USER\Software\Classes\.bmp]
+@="ModernView.Image"
+
 [HKEY_CURRENT_USER\Software\Classes\.bmp\OpenWithProgids]
 "ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.gif]
+@="ModernView.Image"
 
 [HKEY_CURRENT_USER\Software\Classes\.gif\OpenWithProgids]
 "ModernView.Image"=""
 
+[HKEY_CURRENT_USER\Software\Classes\.tiff]
+@="ModernView.Image"
+
 [HKEY_CURRENT_USER\Software\Classes\.tiff\OpenWithProgids]
 "ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.tif]
+@="ModernView.Image"
 
 [HKEY_CURRENT_USER\Software\Classes\.tif\OpenWithProgids]
 "ModernView.Image"=""
 
+[HKEY_CURRENT_USER\Software\Classes\.ico]
+@="ModernView.Image"
+
 [HKEY_CURRENT_USER\Software\Classes\.ico\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.avif]
+@="ModernView.Image"
+
+[HKEY_CURRENT_USER\Software\Classes\.avif\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.heic]
+@="ModernView.Image"
+
+[HKEY_CURRENT_USER\Software\Classes\.heic\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.heif]
+@="ModernView.Image"
+
+[HKEY_CURRENT_USER\Software\Classes\.heif\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.qoi]
+@="ModernView.Image"
+
+[HKEY_CURRENT_USER\Software\Classes\.qoi\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.tga]
+@="ModernView.Image"
+
+[HKEY_CURRENT_USER\Software\Classes\.tga\OpenWithProgids]
+"ModernView.Image"=""
+
+[HKEY_CURRENT_USER\Software\Classes\.hdr]
+@="ModernView.Image"
+
+[HKEY_CURRENT_USER\Software\Classes\.hdr\OpenWithProgids]
 "ModernView.Image"=""
 
 ; 5. Windows Default Apps / RegisteredApplications Integration
@@ -131,6 +201,12 @@ pub fn generate_file_associations_reg_script() -> Result<PathBuf, String> {
 ".tiff"="ModernView.Image"
 ".tif"="ModernView.Image"
 ".ico"="ModernView.Image"
+".avif"="ModernView.Image"
+".heic"="ModernView.Image"
+".heif"="ModernView.Image"
+".qoi"="ModernView.Image"
+".tga"="ModernView.Image"
+".hdr"="ModernView.Image"
 "#,
         exe = exe_escaped
     );
@@ -164,5 +240,5 @@ pub fn register_windows_integration() -> Result<String, String> {
         ])
         .output();
 
-    Ok("ModernView registered in Windows context menu & default apps.".to_string())
+    Ok("ModernView registered as default viewer & context menu handler.".to_string())
 }

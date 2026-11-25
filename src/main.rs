@@ -25,10 +25,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 2. Initialize Slint Window
     let app = AppWindow::new()?;
 
-    // 3. Initialize Controller and wire state
+    // 3. Show window immediately to begin compositor presentation
+    app.show()?;
+
+    // 4. Initialize Controller and wire state
     let _controller = AppController::new(app.clone_strong(), cli_file);
 
-    // 4. Start Event Loop
+    // 5. Start Event Loop
     app.run()?;
 
     Ok(())

@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 const SUPPORTED_EXTENSIONS: &[&str] = &[
     "jpg", "jpeg", "png", "webp", "gif", "bmp", "tiff", "tif", "ico",
+    "avif", "heic", "heif", "qoi", "tga", "hdr", "ppm", "pgm", "pbm", "pnm", "ff",
 ];
 
 pub fn is_supported_image(path: &Path) -> bool {
@@ -67,7 +68,7 @@ impl FolderBrowser {
             let mut files: Vec<PathBuf> = entries
                 .filter_map(|e| e.ok())
                 .map(|e| e.path())
-                .filter(|p| p.is_file() && is_supported_image(p))
+                .filter(|p| is_supported_image(p) && p.is_file())
                 .collect();
 
             // Natural alphanumeric sort

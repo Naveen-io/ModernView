@@ -38,7 +38,7 @@ foreach ($key in $keysToRemove) {
 Remove-ItemProperty -Path "HKCU:\Software\RegisteredApplications" -Name "ModernView" -ErrorAction SilentlyContinue
 
 # Remove from OpenWithProgids
-$exts = @(".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff", ".tif", ".ico")
+$exts = @(".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif", ".tiff", ".tif", ".ico", ".avif", ".heic", ".heif", ".qoi", ".tga", ".hdr")
 foreach ($ext in $exts) {
     Remove-ItemProperty -Path "HKCU:\Software\Classes\$ext\OpenWithProgids" -Name "ModernView.Image" -ErrorAction SilentlyContinue
 }
